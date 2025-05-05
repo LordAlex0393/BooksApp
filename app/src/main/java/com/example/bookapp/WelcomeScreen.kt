@@ -14,33 +14,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
+private const val BUTTON_MAX_WIDTH = 0.6f
+private val BUTTON_MAX_HEIGHT = 44.dp
+private val PADDING = 16.dp
+
 @Composable
 fun WelcomeScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(PADDING),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         Text(
             text = "Добро пожаловать!",
             style = MaterialTheme.typography.headlineMedium
         )
-        Spacer(modifier = Modifier.height(32.dp))
+
+
+        Spacer(modifier = Modifier.height(36.dp))
+
 
         Button(
             onClick = { navController.navigate("login") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth(BUTTON_MAX_WIDTH)
+                .height(BUTTON_MAX_HEIGHT)
         ) {
             Text("Войти")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+
+        Spacer(modifier = Modifier.height(20.dp))
+
 
         Button(
             onClick = { navController.navigate("signup") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth(BUTTON_MAX_WIDTH)
+                .height(BUTTON_MAX_HEIGHT)
         ) {
             Text("Создать аккаунт")
         }

@@ -17,11 +17,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+
+private const val BUTTON_MAX_WIDTH = 0.5f
+private val BUTTON_MAX_HEIGHT = 48.dp
+private val PADDING = 52.dp
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -33,8 +38,9 @@ fun LoginScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center
+            .padding(PADDING),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "Вход",
@@ -67,7 +73,7 @@ fun LoginScreen(navController: NavController) {
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = {
@@ -89,16 +95,18 @@ fun LoginScreen(navController: NavController) {
 //                    }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            //modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth(BUTTON_MAX_WIDTH)
+                .height(BUTTON_MAX_HEIGHT)
         ) {
             Text("Войти")
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
         TextButton(
             onClick = { navController.navigate("signup") },
-            modifier = Modifier.fillMaxWidth()
         ) {
             Text("Нет аккаунта? Зарегистрируйтесь")
         }

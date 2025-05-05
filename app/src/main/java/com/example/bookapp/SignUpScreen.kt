@@ -1,3 +1,4 @@
+
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,36 +25,20 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import at.favre.lib.crypto.bcrypt.BCrypt
-import com.example.bookapp.BuildConfig
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Postgrest
+import com.example.bookapp.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import java.net.URL
 import java.net.UnknownHostException
 
 // ============= КОНСТАНТЫ И КОНФИГУРАЦИЯ =============
 private const val SUCCESS_COLOR_HEX = 0xFF2E7D32
 private const val BCRYPT_COST = 12
-
-// ================ КОНФИГУРАЦИЯ SUPABASE ================
-val supabase = createSupabaseClient(
-    supabaseUrl = BuildConfig.SUPABASE_URL,
-    supabaseKey = BuildConfig.SUPABASE_KEY
-) {
-    install(Postgrest)
-}
-
-// ================ МОДЕЛЬ ДАННЫХ ================
-@Serializable
-data class User(
-    val username: String,
-    val email: String,
-    val password_hash: String
-)
+private const val BUTTON_MAX_WIDTH = 0.6f
+private val BUTTON_MAX_HEIGHT = 48.dp
+private val PADDING = 52.dp
 
 // ================ ЭКРАН РЕГИСТРАЦИИ ================
 @Composable
@@ -70,13 +56,17 @@ fun SignUpScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(PADDING),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         // Заголовок
         Text("Регистрация", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
+
+
+        Spacer(modifier = Modifier.height(20.dp))
+
 
         // Поле имени пользователя
         OutlinedTextField(
@@ -85,7 +75,10 @@ fun SignUpScreen(navController: NavController) {
             label = { Text("Имя пользователя") },
             modifier = Modifier.fillMaxWidth()
         )
+
+
         Spacer(modifier = Modifier.height(8.dp))
+
 
         // Поле email
         OutlinedTextField(
@@ -94,7 +87,10 @@ fun SignUpScreen(navController: NavController) {
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth()
         )
+
+
         Spacer(modifier = Modifier.height(8.dp))
+
 
         // Поле пароля
         OutlinedTextField(
@@ -104,7 +100,10 @@ fun SignUpScreen(navController: NavController) {
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
+
+
         Spacer(modifier = Modifier.height(8.dp))
+
 
         // Подтверждение пароля
         OutlinedTextField(
@@ -115,6 +114,7 @@ fun SignUpScreen(navController: NavController) {
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(modifier = Modifier.height(8.dp))
         // --------- Сообщения об ошибках/успехе ---------
         if (error.isNotEmpty()) {
             Text(error, color = MaterialTheme.colorScheme.error)
@@ -124,7 +124,9 @@ fun SignUpScreen(navController: NavController) {
             Text("Вы успешно зарегистрировались", color = Color(SUCCESS_COLOR_HEX))
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+
+        Spacer(modifier = Modifier.height(16.dp)) //24
+
 
         // --------- Кнопка регистрации ---------
         Button(onClick = {
@@ -147,7 +149,7 @@ fun SignUpScreen(navController: NavController) {
 
                         // --------- Отправка данных в Supabase ---------
                         val hashedPassword = hashPassword(password)
-                        supabase.from("users").insert(mapOf(
+                        SupabaseClient.client.from("users").insert(mapOf(
                             "username" to username,
                             "email" to email,
                             "password_hash" to hashedPassword
@@ -176,8 +178,23 @@ fun SignUpScreen(navController: NavController) {
                     Log.e("SignUp", "Registration error", e)
                 }
             }
-        }) {
+        },
+            modifier = Modifier
+                .fillMaxWidth(BUTTON_MAX_WIDTH)
+                .height(BUTTON_MAX_HEIGHT)
+        ) {
             Text("Зарегистрироваться")
+        }
+
+
+        Spacer(modifier = Modifier.height(5.dp))
+
+
+        TextButton(
+            onClick = { navController.navigate("login") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Уже есть аккаунт? Войдите")
         }
     }
 }
@@ -190,9 +207,13 @@ fun hashPassword(password: String): String {
 // ----- Проверка интернет-соединения -----
 private fun checkInternetConnection(): Boolean {
     return try {
-        URL("https://google.com").openConnection().connect()
+        URL("https://google.com").openConnection().apply {
+            connectTimeout = 3000
+            readTimeout = 3000
+        }.connect()
         true
     } catch (e: Exception) {
+        Log.w("Network", "No internet connection: ${e.localizedMessage}")
         false
     }
 }
