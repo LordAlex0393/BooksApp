@@ -1,5 +1,6 @@
-package com.example.bookapp
+package com.example.bookapp.logics
 
+import com.example.bookapp.BuildConfig
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 
@@ -8,6 +9,6 @@ object SupabaseClient {
         supabaseUrl = BuildConfig.SUPABASE_URL,
         supabaseKey = BuildConfig.SUPABASE_KEY
     ) {
-        install(Postgrest)
+        install(Postgrest.Companion)
     }
 }

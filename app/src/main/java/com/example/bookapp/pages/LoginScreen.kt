@@ -26,7 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import at.favre.lib.crypto.bcrypt.BCrypt
-import com.example.bookapp.SupabaseClient
+import com.example.bookapp.logics.SupabaseClient
 import com.example.bookapp.models.User
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.delay
