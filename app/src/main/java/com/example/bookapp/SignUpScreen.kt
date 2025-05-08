@@ -13,6 +13,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,7 @@ import at.favre.lib.crypto.bcrypt.BCrypt
 import com.example.bookapp.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URL
@@ -122,7 +124,10 @@ fun SignUpScreen(navController: NavController) {
 
         if (registrationSuccess) {
             Text("Вы успешно зарегистрировались", color = Color(SUCCESS_COLOR_HEX))
-            navController.navigate("login")
+            LaunchedEffect(Unit) {
+                delay(1500) // Задержка для отображения сообщения
+                navController.navigate("login") // Переход на главный экран
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp)) //24
