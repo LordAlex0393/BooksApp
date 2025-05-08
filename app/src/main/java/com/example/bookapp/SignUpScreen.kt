@@ -122,8 +122,8 @@ fun SignUpScreen(navController: NavController) {
 
         if (registrationSuccess) {
             Text("Вы успешно зарегистрировались", color = Color(SUCCESS_COLOR_HEX))
+            navController.navigate("login")
         }
-
 
         Spacer(modifier = Modifier.height(16.dp)) //24
 
