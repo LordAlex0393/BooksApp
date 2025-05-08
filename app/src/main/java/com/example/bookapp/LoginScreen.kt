@@ -28,15 +28,14 @@ import androidx.navigation.NavController
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.example.bookapp.SupabaseClient
 import io.github.jan.supabase.postgrest.from
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import java.net.UnknownHostException
 
 private const val SUCCESS_COLOR_HEX = 0xFF2E7D32
 private const val BUTTON_MAX_WIDTH = 0.5f
+private const val TRANSITION_DELAY = 1500L
 private val BUTTON_MAX_HEIGHT = 48.dp
 private val PADDING = 52.dp
 
@@ -59,7 +58,10 @@ fun LoginScreen(navController: NavController) {
             text = "Вход",
             style = MaterialTheme.typography.headlineMedium
         )
+
+
         Spacer(modifier = Modifier.height(16.dp))
+
 
         OutlinedTextField(
             value = email,
@@ -68,7 +70,9 @@ fun LoginScreen(navController: NavController) {
             modifier = Modifier.fillMaxWidth()
         )
 
+
         Spacer(modifier = Modifier.height(8.dp))
+
 
         OutlinedTextField(
             value = password,
@@ -78,7 +82,9 @@ fun LoginScreen(navController: NavController) {
             modifier = Modifier.fillMaxWidth()
         )
 
+
         Spacer(modifier = Modifier.height(6.dp))
+
 
         if (error.isNotEmpty()) {
             Text(
@@ -87,7 +93,6 @@ fun LoginScreen(navController: NavController) {
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
-
         if (loginSuccess) {
             Text(
                 text = "Вы успешно вошли",
@@ -95,12 +100,14 @@ fun LoginScreen(navController: NavController) {
                 modifier = Modifier.padding(top = 8.dp)
             )
             LaunchedEffect(Unit) {
-                delay(1500) // Задержка для отображения сообщения
+                delay(TRANSITION_DELAY) // Задержка
                 navController.navigate("welcome") // Переход на главный экран
             }
         }
 
+
         Spacer(modifier = Modifier.height(16.dp))
+
 
         Button(
             onClick = {
@@ -110,52 +117,18 @@ fun LoginScreen(navController: NavController) {
                 }
 
                 scope.launch {
-                    try {
-                        // Получаем пользователя из Supabase
-                        val user = SupabaseClient.client
-                            .from("users")
-                            .select {
-                                filter{
-                                    eq("email", email)
-                                }
-                            }
-                            .decodeSingleOrNull<User>()
-
-                        if (user == null) {
-                            withContext(Dispatchers.Main) {
-                                error = "Пользователь не найден"
-                            }
-                        }
-
-                        // Проверяем пароль
-                        val isPasswordValid = BCrypt.verifyer()
-                            .verify(password.toCharArray(), user?.password_hash)
-                            .verified
-
-                        if (!isPasswordValid) {
-                            withContext(Dispatchers.Main) {
-                                error = "Неверный пароль"
-                            }
-                        }
-
-                        // Успешный вход
-                        withContext(Dispatchers.Main) {
+                    loginUser(
+                        email = email,
+                        password = password,
+                        onError = { errorMessage -> error = errorMessage
+                        },
+                        onSuccess = {
                             loginSuccess = true
                             error = ""
                             email = ""
                             password = ""
                         }
-
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            error = when {
-                                e is UnknownHostException -> "Ошибка подключения"
-                                e.message?.contains("404") == true -> "Пользователь не найден"
-                                else -> "Ошибка входа: ${e.localizedMessage}"
-                            }
-                        }
-                        Log.e("Login", "Login error", e)
-                    }
+                    )
                 }
             },
             modifier = Modifier
@@ -165,13 +138,63 @@ fun LoginScreen(navController: NavController) {
             Text("Войти")
         }
 
+
         Spacer(modifier = Modifier.height(3.dp))
+
 
         TextButton(
             onClick = { navController.navigate("signup") },
         ) {
             Text("Нет аккаунта? Зарегистрируйтесь")
         }
+    }
+}
+
+
+// --------- Вход в аккаунт ---------
+private suspend fun loginUser(
+    email: String,
+    password: String,
+    onError: (String) -> Unit,
+    onSuccess: () -> Unit
+) {
+    try {
+        // Получаем пользователя из Supabase
+        val user = SupabaseClient.client
+            .from("users")
+            .select {
+                filter {
+                    eq("email", email)
+                }
+            }
+            .decodeSingleOrNull<User>()
+
+        if (user == null) {
+            onError("Пользователь не найден")
+            return
+        }
+
+        // Проверяем пароль
+        val isPasswordValid = BCrypt.verifyer()
+            .verify(password.toCharArray(), user.password_hash)
+            .verified
+
+        if (!isPasswordValid) {
+            onError("Неверный пароль")
+            return
+        }
+
+        // Успешный вход
+        onSuccess()
+
+    } catch (e: Exception) {
+        val errorMessage = when {
+            e is UnknownHostException -> "Ошибка подключения"
+            e.message?.contains("404") == true -> "Пользователь не найден"
+            else -> "Ошибка входа: ${e.localizedMessage}"
+        }
+        onError(errorMessage)
+        Log.e("Login", "Login error", e)
     }
 }
 

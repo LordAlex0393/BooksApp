@@ -39,6 +39,7 @@ import java.net.UnknownHostException
 private const val SUCCESS_COLOR_HEX = 0xFF2E7D32
 private const val BCRYPT_COST = 12
 private const val BUTTON_MAX_WIDTH = 0.6f
+private const val TRANSITION_DELAY = 1500L
 private val BUTTON_MAX_HEIGHT = 48.dp
 private val PADDING = 52.dp
 
@@ -125,7 +126,7 @@ fun SignUpScreen(navController: NavController) {
         if (registrationSuccess) {
             Text("Вы успешно зарегистрировались", color = Color(SUCCESS_COLOR_HEX))
             LaunchedEffect(Unit) {
-                delay(1500) // Задержка для отображения сообщения
+                delay(TRANSITION_DELAY) // Задержка
                 navController.navigate("login") // Переход на главный экран
             }
         }
@@ -134,36 +135,17 @@ fun SignUpScreen(navController: NavController) {
 
 
         // --------- Кнопка регистрации ---------
-        Button(onClick = {
-            // Валидация паролей
-            if (password != confirmPassword) {
-                error = "Пароли не совпадают"
-                return@Button
-            }
-
-            scope.launch {
-                try {
-                    withContext(Dispatchers.IO) {
-                        // Проверка интернет-соединения
-                        if (!checkInternetConnection()) {
-                            withContext(Dispatchers.Main) {
-                                error = "Нет подключения к интернету"
-                            }
-                            return@withContext
-                        }
-
-                        // --------- Отправка данных в Supabase ---------
-                        val hashedPassword = hashPassword(password)
-                        SupabaseClient.client.from("users").insert(mapOf(
-                            "username" to username,
-                            "email" to email,
-                            "password_hash" to hashedPassword
-                        )) {
-                            select()
-                        }
-
-                        // Очистка формы после успешной регистрации
-                        withContext(Dispatchers.Main) {
+        Button(
+            onClick = {
+                scope.launch {
+                    registerUser(
+                        username = username,
+                        email = email,
+                        password = password,
+                        confirmPassword = confirmPassword,
+                        onError = { errorMessage -> error = errorMessage
+                        },
+                        onSuccess = {
                             registrationSuccess = true
                             error = ""
                             username = ""
@@ -171,19 +153,9 @@ fun SignUpScreen(navController: NavController) {
                             password = ""
                             confirmPassword = ""
                         }
-                    }
-                } catch (e: Exception) {
-                    // Обработка ошибок
-                    withContext(Dispatchers.Main) {
-                        error = when (e) {
-                            is UnknownHostException -> "Ошибка подключения. Проверьте интернет"
-                            else -> "Ошибка регистрации: ${e.localizedMessage}"
-                        }
-                    }
-                    Log.e("SignUp", "Registration error", e)
+                    )
                 }
-            }
-        },
+            },
             modifier = Modifier
                 .fillMaxWidth(BUTTON_MAX_WIDTH)
                 .height(BUTTON_MAX_HEIGHT)
@@ -201,6 +173,54 @@ fun SignUpScreen(navController: NavController) {
         ) {
             Text("Уже есть аккаунт? Войдите")
         }
+    }
+}
+
+// --------- Регистрация пользователя ---------
+private suspend fun registerUser(
+    username: String,
+    email: String,
+    password: String,
+    confirmPassword: String,
+    onError: (String) -> Unit,
+    onSuccess: () -> Unit
+) {
+    try {
+        withContext(Dispatchers.IO) {
+            // Проверка интернет-соединения
+            if (!checkInternetConnection()) {
+                onError("Нет подключения к интернету")
+                return@withContext
+            }
+
+            // Проверка совпадения паролей
+            if (password != confirmPassword) {
+                onError("Пароли не совпадают")
+                return@withContext
+            }
+
+            // Хеширование пароля
+            val hashedPassword = hashPassword(password)
+
+            // Отправка данных в Supabase
+            SupabaseClient.client.from("users").insert(mapOf(
+                "username" to username,
+                "email" to email,
+                "password_hash" to hashedPassword
+            )) {
+                select()
+            }
+
+            // Успешная регистрация
+            onSuccess()
+        }
+    } catch (e: Exception) {
+        val errorMessage = when (e) {
+            is UnknownHostException -> "Ошибка подключения. Проверьте интернет"
+            else -> "Ошибка регистрации: ${e.localizedMessage}"
+        }
+        onError(errorMessage)
+        Log.e("SignUp", "Registration error", e)
     }
 }
 
