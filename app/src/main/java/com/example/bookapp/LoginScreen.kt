@@ -27,10 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.example.bookapp.SupabaseClient
+import com.example.bookapp.models.User
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import java.net.UnknownHostException
 
 private const val SUCCESS_COLOR_HEX = 0xFF2E7D32
@@ -197,10 +197,3 @@ private suspend fun loginUser(
         Log.e("Login", "Login error", e)
     }
 }
-
-// Модель пользователя (добавьте в общие классы)
-@Serializable
-data class User(
-    val email: String,
-    val password_hash: String
-)
