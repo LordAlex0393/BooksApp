@@ -101,7 +101,7 @@ fun LoginScreen(navController: NavController) {
             )
             LaunchedEffect(Unit) {
                 delay(TRANSITION_DELAY) // Задержка
-                navController.navigate("welcome") // Переход на главный экран
+                navController.navigate("profile")
             }
         }
 

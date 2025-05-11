@@ -1,6 +1,7 @@
 package com.example.bookapp
 
 import LoginScreen
+import ProfileScreen
 import SignUpScreen
 import WelcomeScreen
 import android.os.Bundle
@@ -26,5 +27,6 @@ fun App() {
         composable("welcome") { WelcomeScreen(navController) }
         composable("login") { LoginScreen(navController) }
         composable("signup") { SignUpScreen(navController) }
+        composable("profile") { ProfileScreen(navController) }
     }
 }
