@@ -1,3 +1,4 @@
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.bookapp.models.Book
+import com.example.bookapp.models.BookListDB
 import com.example.bookapp.models.UserSession
 
 private const val LIST_TITLE_MAX_WIDTH = 0.8f
@@ -46,21 +48,21 @@ private val USERNAME_PADDING_TOP = 16.dp
 @Composable
 fun ProfileScreen(navController: NavController) {
     // Временные данные для демонстрации
-    val bookLists = listOf(
-        BookList("Category1", listOf(
-            BookSample("BookName1", "BookAuthor1"),
-            BookSample("BookName2", "BookAuthor2"),
-            BookSample("BookName3", "BookAuthor3"),
-            BookSample("BookName4", "BookAuthor4"),
-        )),
-        BookList("Category2", listOf(
-            BookSample("BookName5", "BookAuthor5"),
-        )),
-        BookList("Category3", listOf(
-            BookSample("BookName6", "BookAuthor6"),
-            BookSample("BookName7", "BookAuthor7"),
-        )),
-    )
+//    val UserSession.bookLists = listOf(
+//        BookList("Category1", listOf(
+//            BookSample("BookName1", "BookAuthor1"),
+//            BookSample("BookName2", "BookAuthor2"),
+//            BookSample("BookName3", "BookAuthor3"),
+//            BookSample("BookName4", "BookAuthor4"),
+//        )),
+//        BookList("Category2", listOf(
+//            BookSample("BookName5", "BookAuthor5"),
+//        )),
+//        BookList("Category3", listOf(
+//            BookSample("BookName6", "BookAuthor6"),
+//            BookSample("BookName7", "BookAuthor7"),
+//        )),
+//    )
 
 // Основной контейнер с возможностью скролла
     Box(modifier = Modifier.fillMaxSize()) {
@@ -83,7 +85,7 @@ fun ProfileScreen(navController: NavController) {
                     textAlign = TextAlign.Center
                 )
 
-                UserSession.currentUser?.let { user ->
+                UserSession.currentUserDB?.let { user ->
                     Text(
                         text = user.username,
                         style = MaterialTheme.typography.titleLarge,
@@ -98,9 +100,9 @@ fun ProfileScreen(navController: NavController) {
             }
 
             // Списки книг
-            items(bookLists.size) { index ->
-                val bookList = bookLists[index]
-                BookListSection(bookList, navController)
+            items(UserSession.bookListsDB.size) { index ->
+                val bookListDB = UserSession.bookListsDB[index]
+                BookListSection(bookListDB, navController)
                 Spacer(modifier = Modifier.height(BOOKLIST_SPASE))
             }
 
@@ -122,7 +124,7 @@ fun ProfileScreen(navController: NavController) {
 
 // Исправленный BookListSection
 @Composable
-private fun BookListSection(bookList: BookList, navController: NavController) {
+private fun BookListSection(bookListDB: BookListDB, navController: NavController) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // Заголовок списка с кнопкой "Посмотреть все"
         Row(
@@ -130,7 +132,7 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = bookList.title,
+                text = bookListDB.name,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .fillMaxWidth(LIST_TITLE_MAX_WIDTH)
@@ -148,19 +150,19 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
 
         //Spacer(modifier = Modifier.height(1.dp))
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(LIST_SPACING),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(bookList.books.size) { index ->
-                BookItem(bookList.books[index])
-            }
-        }
+//        LazyRow(
+//            horizontalArrangement = Arrangement.spacedBy(LIST_SPACING),
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            items(bookListDB.size) { index ->
+//                BookItem(bookListDB.books[index])
+//            }
+//        }
     }
 }
 
 @Composable
-private fun BookItem(book: BookSample) {
+private fun BookItem(book: Book) {
     Column(
         modifier = Modifier
             .width(BOOK_ITEM_WIDTH)
@@ -196,14 +198,3 @@ private fun BookItem(book: BookSample) {
         )
     }
 }
-
-// Модели данных
-data class BookList(
-    val title: String,
-    val books: List<BookSample>
-)
-
-data class BookSample(
-    val title: String,
-    val author: String
-)
