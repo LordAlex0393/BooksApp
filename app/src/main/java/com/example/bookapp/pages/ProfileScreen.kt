@@ -1,4 +1,5 @@
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,11 +26,22 @@ import androidx.navigation.NavController
 import com.example.bookapp.models.UserSession
 
 private const val LIST_TITLE_MAX_WIDTH = 0.8f
+private val PADDING = 24.dp
+
+private val BOOKLIST_TITLE_PADDING = 8.dp
+private val BOOKLIST_SPASE = 28.dp
+
 private val BOOK_ITEM_HEIGHT = 180.dp
 private val BOOK_ITEM_WIDTH = 120.dp
 private val LIST_SPACING = 12.dp
-private val BUTTON_MAX_HEIGHT = 48.dp
-private val PADDING = 52.dp
+
+private val CREATE_LIST_BUTTON_HEIGHT = 56.dp
+private val CREATE_LIST_BUTTON_WIDTH = 0.8f
+private val CREATE_LIST_BUTTON_PADDING_TOP = 10.dp
+
+private val USERNAME_PADDING_START = 6.dp
+private val USERNAME_PADDING_TOP = 16.dp
+
 
 @Composable
 fun ProfileScreen(navController: NavController) {
@@ -62,6 +74,8 @@ fun ProfileScreen(navController: NavController) {
         ) {
             // Заголовок "Профиль"
             item {
+                Spacer(modifier = Modifier.height(20.dp))
+
                 Text(
                     text = "Профиль",
                     style = MaterialTheme.typography.headlineMedium,
@@ -69,14 +83,13 @@ fun ProfileScreen(navController: NavController) {
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
-
                 UserSession.currentUser?.let { user ->
                     Text(
                         text = user.username,
                         style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(top = 16.dp)
-                            .fillMaxWidth(),
+                        modifier = Modifier.padding(top = USERNAME_PADDING_TOP)
+                            .fillMaxWidth()
+                            .padding(start = USERNAME_PADDING_START, top = USERNAME_PADDING_TOP),
                         textAlign = TextAlign.Left
                     )
                 }
@@ -88,7 +101,7 @@ fun ProfileScreen(navController: NavController) {
             items(bookLists.size) { index ->
                 val bookList = bookLists[index]
                 BookListSection(bookList, navController)
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(BOOKLIST_SPASE))
             }
 
             // Кнопка "Новый список"
@@ -96,8 +109,9 @@ fun ProfileScreen(navController: NavController) {
                 OutlinedButton(
                     onClick = { /* ... */ },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(BUTTON_MAX_HEIGHT)
+                        .height(CREATE_LIST_BUTTON_HEIGHT)
+                        .fillMaxWidth(CREATE_LIST_BUTTON_WIDTH)
+                        .padding(top = CREATE_LIST_BUTTON_PADDING_TOP)
                 ) {
                     Text("Новый список")
                 }
@@ -120,12 +134,13 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .fillMaxWidth(LIST_TITLE_MAX_WIDTH)
-                    .weight(1f)
+                    .weight(0.7f)
+                    .padding(BOOKLIST_TITLE_PADDING)
             )
 
             TextButton(
                 onClick = { /* Навигация на полный список */ },
-                modifier = Modifier.weight(0.8f)
+                modifier = Modifier.weight(0.4f)
             ) {
                 Text("Посмотреть все", style = MaterialTheme.typography.labelLarge)
             }
@@ -133,7 +148,6 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
 
         //Spacer(modifier = Modifier.height(1.dp))
 
-        // Исправленный LazyRow
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(LIST_SPACING),
             modifier = Modifier.fillMaxWidth()
@@ -159,9 +173,10 @@ private fun BookItem(book: BookSample) {
                 .fillMaxWidth()
                 .weight(1f)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable(){}
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Название книги
         Text(
