@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.example.bookapp.logics.SupabaseClient
 import com.example.bookapp.models.User
+import com.example.bookapp.models.UserSession
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -35,7 +36,7 @@ import java.net.UnknownHostException
 
 private const val SUCCESS_COLOR_HEX = 0xFF2E7D32
 private const val BUTTON_MAX_WIDTH = 0.5f
-private const val TRANSITION_DELAY = 1500L
+private const val TRANSITION_DELAY = 500L
 private val BUTTON_MAX_HEIGHT = 48.dp
 private val PADDING = 52.dp
 
@@ -185,6 +186,7 @@ private suspend fun loginUser(
         }
 
         // Успешный вход
+        UserSession.currentUser = user
         onSuccess()
 
     } catch (e: Exception) {

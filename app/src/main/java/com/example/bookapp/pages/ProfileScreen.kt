@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -17,9 +18,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.bookapp.models.UserSession
 
 private const val LIST_TITLE_MAX_WIDTH = 0.8f
 private val BOOK_ITEM_HEIGHT = 180.dp
@@ -31,53 +34,74 @@ private val PADDING = 52.dp
 @Composable
 fun ProfileScreen(navController: NavController) {
     // Временные данные для демонстрации
-    val username = "Иван Иванов"
     val bookLists = listOf(
-        BookList("Избранное", listOf(
-            BookSample("1984", "Джордж Оруэлл"),
-            BookSample("Преступление и наказание", "Ф. Достоевский")
+        BookList("Category1", listOf(
+            BookSample("BookName1", "BookAuthor1"),
+            BookSample("BookName2", "BookAuthor2"),
+            BookSample("BookName3", "BookAuthor3"),
+            BookSample("BookName4", "BookAuthor4"),
         )),
-        BookList("Для прочтения", listOf(
-            BookSample("Мастер и Маргарита", "М. Булгаков"),
-            BookSample("Три товарища", "Э.М. Ремарк")
-        ))
+        BookList("Category2", listOf(
+            BookSample("BookName5", "BookAuthor5"),
+        )),
+        BookList("Category3", listOf(
+            BookSample("BookName6", "BookAuthor6"),
+            BookSample("BookName7", "BookAuthor7"),
+        )),
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PADDING),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
-    ) {
-        // Заголовок
-        Text(
-            text = "Профиль",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        // Имя пользователя
-        Text(
-            text = username,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-
-        // Списки книг
-        bookLists.forEach { bookList ->
-            BookListSection(bookList, navController)
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        // Кнопка создания нового списка
-        OutlinedButton(
-            onClick = { /* В будущем - навигация на экран создания списка */ },
+// Основной контейнер с возможностью скролла
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Вертикальный скроллинг
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(BUTTON_MAX_HEIGHT)
+                .fillMaxSize()
+                .padding(PADDING),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Новый список", color = MaterialTheme.colorScheme.onSurface)
+            // Заголовок "Профиль"
+            item {
+                Text(
+                    text = "Профиль",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                UserSession.currentUser?.let { user ->
+                    Text(
+                        text = user.username,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(top = 16.dp)
+                            .fillMaxWidth(),
+                        textAlign = TextAlign.Left
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            // Списки книг
+            items(bookLists.size) { index ->
+                val bookList = bookLists[index]
+                BookListSection(bookList, navController)
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            // Кнопка "Новый список"
+            item {
+                OutlinedButton(
+                    onClick = { /* ... */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(BUTTON_MAX_HEIGHT)
+                ) {
+                    Text("Новый список")
+                }
+            }
         }
     }
 }
@@ -101,13 +125,13 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
 
             TextButton(
                 onClick = { /* Навигация на полный список */ },
-                modifier = Modifier.weight(0.2f)
+                modifier = Modifier.weight(0.8f)
             ) {
-                Text("Все →", style = MaterialTheme.typography.labelLarge)
+                Text("Посмотреть все", style = MaterialTheme.typography.labelLarge)
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        //Spacer(modifier = Modifier.height(1.dp))
 
         // Исправленный LazyRow
         LazyRow(
