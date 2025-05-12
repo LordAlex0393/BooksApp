@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -24,7 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.bookapp.models.Book
-import com.example.bookapp.models.BookListDB
+import com.example.bookapp.models.BookList
 import com.example.bookapp.models.UserSession
 
 private const val LIST_TITLE_MAX_WIDTH = 0.8f
@@ -100,9 +101,9 @@ fun ProfileScreen(navController: NavController) {
             }
 
             // Списки книг
-            items(UserSession.bookListsDB.size) { index ->
-                val bookListDB = UserSession.bookListsDB[index]
-                BookListSection(bookListDB, navController)
+            items(UserSession.bookLists.size) { index ->
+                val bookList = UserSession.bookLists[index]
+                BookListSection(bookList, navController)
                 Spacer(modifier = Modifier.height(BOOKLIST_SPASE))
             }
 
@@ -124,7 +125,7 @@ fun ProfileScreen(navController: NavController) {
 
 // Исправленный BookListSection
 @Composable
-private fun BookListSection(bookListDB: BookListDB, navController: NavController) {
+private fun BookListSection(bookList: BookList, navController: NavController) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // Заголовок списка с кнопкой "Посмотреть все"
         Row(
@@ -132,7 +133,7 @@ private fun BookListSection(bookListDB: BookListDB, navController: NavController
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = bookListDB.name,
+                text = bookList.name,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .fillMaxWidth(LIST_TITLE_MAX_WIDTH)
@@ -150,14 +151,14 @@ private fun BookListSection(bookListDB: BookListDB, navController: NavController
 
         //Spacer(modifier = Modifier.height(1.dp))
 
-//        LazyRow(
-//            horizontalArrangement = Arrangement.spacedBy(LIST_SPACING),
-//            modifier = Modifier.fillMaxWidth()
-//        ) {
-//            items(bookListDB.size) { index ->
-//                BookItem(bookListDB.books[index])
-//            }
-//        }
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(LIST_SPACING),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(bookList.books.size) { index ->
+                BookItem(bookList.books[index])
+            }
+        }
     }
 }
 

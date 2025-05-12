@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.example.bookapp.logics.SupabaseClient
 import com.example.bookapp.logics.getUserBookLists
+import com.example.bookapp.logics.initializeUserBookListsParallel
 import com.example.bookapp.models.UserDB
 import com.example.bookapp.models.UserSession
 import io.github.jan.supabase.postgrest.from
@@ -189,7 +190,7 @@ private suspend fun loginUser(
         // Успешный вход
         UserSession.currentUserDB = userDB
         UserSession.bookListsDB = getUserBookLists(UserSession.currentUserDB!!.id)
-
+        initializeUserBookListsParallel()
         onSuccess()
 
     } catch (e: Exception) {
