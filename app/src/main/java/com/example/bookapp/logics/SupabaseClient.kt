@@ -22,20 +22,6 @@ object SupabaseClient {
     }
 }
 
-
-//suspend fun getUserBookLists(userId: String): List<BookListDB> {
-//    return SupabaseClient.client
-//        .from("book_lists")
-//        .select(
-//            Columns.raw("id, name, users!user_book_lists(id)"
-//        )) {
-//            filter {
-//                eq("users.id", userId)  // Фильтр через отношение
-//            }
-//        }
-//        .decodeList<BookListDB>()
-//}
-
 suspend fun getUserBookLists(userId: String): List<BookListDB> {
     return SupabaseClient.client
         .from("book_lists")

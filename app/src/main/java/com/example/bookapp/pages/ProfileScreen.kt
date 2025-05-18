@@ -18,17 +18,25 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookapp.models.Book
 import com.example.bookapp.models.BookList
 import com.example.bookapp.models.UserSession
+import com.example.bookapp.ui.theme.LoadingIndicator
+import com.example.bookapp.viewModel.ProfileViewModel
+import com.example.bookapp.viewModel.ProfileViewModelFactory
 
 private const val LIST_TITLE_MAX_WIDTH = 0.8f
 private val PADDING = 24.dp
@@ -49,27 +57,25 @@ private val USERNAME_PADDING_TOP = 16.dp
 
 
 @Composable
-fun ProfileScreen(navController: NavController) {
-    // Временные данные для демонстрации
-//    val UserSession.bookLists = listOf(
-//        BookList("Category1", listOf(
-//            BookSample("BookName1", "BookAuthor1"),
-//            BookSample("BookName2", "BookAuthor2"),
-//            BookSample("BookName3", "BookAuthor3"),
-//            BookSample("BookName4", "BookAuthor4"),
-//        )),
-//        BookList("Category2", listOf(
-//            BookSample("BookName5", "BookAuthor5"),
-//        )),
-//        BookList("Category3", listOf(
-//            BookSample("BookName6", "BookAuthor6"),
-//            BookSample("BookName7", "BookAuthor7"),
-//        )),
-//    )
+fun ProfileScreen(
+    navController: NavController,
+    viewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory())
+) {
+    val bookLists by viewModel.bookLists.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-// Основной контейнер с возможностью скролла
+    LaunchedEffect(Unit) {
+        UserSession.currentUserDB?.id?.let { userId ->
+            viewModel.loadUserBookLists(userId)
+        }
+    }
+
+    if (isLoading) {
+        LoadingIndicator()
+        return
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Вертикальный скроллинг
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -103,9 +109,8 @@ fun ProfileScreen(navController: NavController) {
             }
 
             // Списки книг
-            items(UserSession.bookLists.size) { index ->
-                val bookList = UserSession.bookLists[index]
-                BookListSection(bookList, navController)
+            items(bookLists.size) { index ->
+                BookListSection(bookLists[index], navController)
                 Spacer(modifier = Modifier.height(BOOKLIST_SPASE))
             }
 
@@ -195,15 +200,20 @@ private fun BookItem(book: Book) {
             contentScale = ContentScale.FillHeight
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(7.dp))
 
         // Название книги
         Text(
             text = book.title,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                lineHeight = 16.sp // Уменьшаем интерлиньяж (стандартно ~20.sp)
+            ),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
+
+        Spacer(modifier = Modifier.height(5.dp))
 
         // Автор
         Text(

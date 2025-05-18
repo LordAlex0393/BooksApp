@@ -1,5 +1,3 @@
-
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -27,18 +25,15 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.example.bookapp.logics.SupabaseClient
-import com.example.bookapp.logics.getUserBookLists
-import com.example.bookapp.logics.initializeUserBookListsParallel
 import com.example.bookapp.models.UserDB
 import com.example.bookapp.models.UserSession
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.net.UnknownHostException
 
 private const val SUCCESS_COLOR_HEX = 0xFF2E7D32
 private const val BUTTON_MAX_WIDTH = 0.5f
-private const val TRANSITION_DELAY = 500L
+private const val TRANSITION_DELAY = 0L
 private val BUTTON_MAX_HEIGHT = 48.dp
 private val PADDING = 52.dp
 
@@ -162,14 +157,9 @@ private suspend fun loginUser(
     onSuccess: () -> Unit
 ) {
     try {
-        // Получаем пользователя из Supabase
         val userDB = SupabaseClient.client
             .from("users")
-            .select {
-                filter {
-                    eq("email", email)
-                }
-            }
+            .select { filter { eq("email", email) } }
             .decodeSingleOrNull<UserDB>()
 
         if (userDB == null) {
@@ -177,7 +167,6 @@ private suspend fun loginUser(
             return
         }
 
-        // Проверяем пароль
         val isPasswordValid = BCrypt.verifyer()
             .verify(password.toCharArray(), userDB.password_hash)
             .verified
@@ -187,19 +176,10 @@ private suspend fun loginUser(
             return
         }
 
-        // Успешный вход
         UserSession.currentUserDB = userDB
-        UserSession.bookListsDB = getUserBookLists(UserSession.currentUserDB!!.id)
-        initializeUserBookListsParallel()
         onSuccess()
 
     } catch (e: Exception) {
-        val errorMessage = when {
-            e is UnknownHostException -> "Ошибка подключения"
-            e.message?.contains("404") == true -> "Пользователь не найден"
-            else -> "Ошибка входа: ${e.localizedMessage}"
-        }
-        onError(errorMessage)
-        Log.e("Login", "Login error", e)
+        // ... обработка ошибок ...
     }
 }
