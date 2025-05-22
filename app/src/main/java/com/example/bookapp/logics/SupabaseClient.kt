@@ -3,7 +3,6 @@ package com.example.bookapp.logics
 import com.example.bookapp.BuildConfig
 import com.example.bookapp.models.Book
 import com.example.bookapp.models.BookList
-import com.example.bookapp.models.BookListDB
 import com.example.bookapp.models.UserSession
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
@@ -22,7 +21,7 @@ object SupabaseClient {
     }
 }
 
-suspend fun getUserBookLists(userId: String): List<BookListDB> {
+suspend fun getUserBookLists(userId: String): List<BookList> {
     return SupabaseClient.client
         .from("book_lists")
         .select(
@@ -37,7 +36,7 @@ suspend fun getUserBookLists(userId: String): List<BookListDB> {
                 eq("user_book_lists.user_id", userId)
             }
         }
-        .decodeList<BookListDB>()
+        .decodeList<BookList>()
 }
 
 suspend fun getBooksByListId(bookListId: String): List<Book> {
@@ -63,16 +62,21 @@ suspend fun getBooksByListId(bookListId: String): List<Book> {
 }
 
 suspend fun initializeUserBookListsParallel() = coroutineScope {
-    val bookListsDB = getUserBookLists(UserSession.currentUserDB!!.id)
-    UserSession.bookLists = bookListsDB.map { bookListDB ->
+    val currentUser = UserSession.currentUser.value ?: return@coroutineScope
+
+    val bookListsDB = getUserBookLists(currentUser.id)
+
+    val updatedBookLists = bookListsDB.map { bookListDB ->
         async {
             val books = getBooksByListId(bookListDB.id)
             BookList(
                 id = bookListDB.id,
                 name = bookListDB.name,
-                createdAt = bookListDB.createdAt,
+                created_at = bookListDB.created_at,
                 books = books
             )
         }
     }.awaitAll()
+
+    UserSession.updateBookLists(updatedBookLists)
 }

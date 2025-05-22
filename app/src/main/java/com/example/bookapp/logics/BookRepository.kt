@@ -2,7 +2,6 @@ package com.example.bookapp.logics
 
 import com.example.bookapp.models.Book
 import com.example.bookapp.models.BookList
-import com.example.bookapp.models.BookListDB
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 
@@ -16,14 +15,14 @@ class BookRepository {
             .select(Columns.Companion.raw("""id, name, created_at, user_book_lists!inner(user_id)""")) {
                 filter { eq("user_book_lists.user_id", userId) }
             }
-            .decodeList<BookListDB>()
+            .decodeList<BookList>()
 
         return bookListsDB.map { bookListDB ->
             val books = getBooksByListId(bookListDB.id)
             BookList(
                 id = bookListDB.id,
                 name = bookListDB.name,
-                createdAt = bookListDB.createdAt,
+                created_at = bookListDB.created_at,
                 books = books
             )
         }

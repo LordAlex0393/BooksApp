@@ -65,7 +65,7 @@ fun ProfileScreen(
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(Unit) {
-        UserSession.currentUserDB?.id?.let { userId ->
+        UserSession.currentUser.value?.id?.let { userId ->
             viewModel.loadUserBookLists(userId)
         }
     }
@@ -94,7 +94,7 @@ fun ProfileScreen(
                     textAlign = TextAlign.Center
                 )
 
-                UserSession.currentUserDB?.let { user ->
+                UserSession.currentUser.value?.let { user ->
                     Text(
                         text = user.username,
                         style = MaterialTheme.typography.titleLarge,
@@ -179,8 +179,8 @@ private fun BookItem(book: Book) {
     ) {
         // Обложка книги
         val painter = rememberAsyncImagePainter(
-            model = book.coverUrl,
-            placeholder = if (book.coverUrl != null) {
+            model = book.cover_url,
+            placeholder = if (book.cover_url != null) {
                 // Показываем плейсхолдер, пока загружается изображение
                 // Можно использовать ваш текущий цвет или другое изображение
                 null

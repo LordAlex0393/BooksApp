@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.example.bookapp.logics.SupabaseClient
-import com.example.bookapp.models.UserDB
+import com.example.bookapp.models.User
 import com.example.bookapp.models.UserSession
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.delay
@@ -157,18 +157,18 @@ private suspend fun loginUser(
     onSuccess: () -> Unit
 ) {
     try {
-        val userDB = SupabaseClient.client
+        val user = SupabaseClient.client
             .from("users")
             .select { filter { eq("email", email) } }
-            .decodeSingleOrNull<UserDB>()
+            .decodeSingleOrNull<User>()
 
-        if (userDB == null) {
+        if (user == null) {
             onError("Пользователь не найден")
             return
         }
 
         val isPasswordValid = BCrypt.verifyer()
-            .verify(password.toCharArray(), userDB.password_hash)
+            .verify(password.toCharArray(), user.password_hash)
             .verified
 
         if (!isPasswordValid) {
@@ -176,7 +176,7 @@ private suspend fun loginUser(
             return
         }
 
-        UserSession.currentUserDB = userDB
+        UserSession.login(user)
         onSuccess()
 
     } catch (e: Exception) {
