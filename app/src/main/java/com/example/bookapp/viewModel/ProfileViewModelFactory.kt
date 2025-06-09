@@ -2,7 +2,7 @@ package com.example.bookapp.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.bookapp.logics.BookRepository
+import com.example.bookapp.repositories.BookRepository
 
 class ProfileViewModelFactory : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")

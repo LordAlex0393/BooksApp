@@ -1,9 +1,10 @@
 package com.example.bookapp.viewModel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.bookapp.logics.BookRepository
 import com.example.bookapp.models.BookList
+import com.example.bookapp.repositories.BookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -21,7 +22,8 @@ class ProfileViewModel(private val repository: BookRepository) : ViewModel() {
             try {
                 _bookLists.value = repository.getUserBookLists(userId)
             } catch (e: Exception) {
-                // Обработка ошибок
+                // Log the exception for debugging
+                Log.e("BookListViewModel", "Error loading user book lists: $e")
             } finally {
                 _isLoading.value = false
             }
