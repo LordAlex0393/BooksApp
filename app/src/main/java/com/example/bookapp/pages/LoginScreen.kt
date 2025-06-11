@@ -29,11 +29,10 @@ private val BUTTON_MAX_HEIGHT = 48.dp
 private val PADDING = 52.dp
 
 @Composable
-fun LoginScreen(navController: NavController) {
-    val viewModel: LoginViewModel = viewModel(
-        factory = LoginViewModelFactory(AuthRepository()) // передаём фабрику
-    )
-
+fun LoginScreen(
+    navController: NavController,
+    viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(AuthRepository()))
+) {
     // Автоматический переход после успешного входа
     if (viewModel.loginSuccess) {
         LaunchedEffect(Unit) {

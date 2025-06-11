@@ -1,4 +1,4 @@
-import android.util.Log
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -7,32 +7,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import at.favre.lib.crypto.bcrypt.BCrypt
-import com.example.bookapp.repositories.SupabaseClient
-import io.github.jan.supabase.postgrest.from
-import kotlinx.coroutines.Dispatchers
+import com.example.bookapp.viewModel.SignUpViewModel
+import com.example.bookapp.viewModel.SignUpViewModelFactory
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.net.URL
-import java.net.UnknownHostException
 
 // ============= КОНСТАНТЫ И КОНФИГУРАЦИЯ =============
 private const val SUCCESS_COLOR_HEX = 0xFF2E7D32
@@ -44,36 +35,34 @@ private val PADDING = 52.dp
 
 // ================ ЭКРАН РЕГИСТРАЦИИ ================
 @Composable
-fun SignUpScreen(navController: NavController) {
-    // --------- Состояния формы ---------
-    var username by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf("") }
-    var registrationSuccess by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+fun SignUpScreen(
+    navController: NavController,
+    viewModel: SignUpViewModel = viewModel(factory = SignUpViewModelFactory())
+) {
+    // Автоматический переход после регистрации
+    if (viewModel.registrationSuccess) {
+        LaunchedEffect(Unit) {
+            delay(1500L)
+            navController.navigate("login") {
+                popUpTo("signup") { inclusive = true }
+            }
+        }
+    }
 
-    // --------- UI Компоненты ---------
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(PADDING),
+            .padding(52.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        // Заголовок
         Text("Регистрация", style = MaterialTheme.typography.headlineMedium)
-
-
         Spacer(modifier = Modifier.height(20.dp))
 
-
-        // Поле имени пользователя
+        // Поля формы
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
+            value = viewModel.username,
+            onValueChange = { viewModel.username = it },
             label = { Text("Имя пользователя") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -84,8 +73,8 @@ fun SignUpScreen(navController: NavController) {
 
         // Поле email
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
+            value = viewModel.email,
+            onValueChange = { viewModel.email = it },
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -96,8 +85,8 @@ fun SignUpScreen(navController: NavController) {
 
         // Поле пароля
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = viewModel.password,
+            onValueChange = { viewModel.password = it },
             label = { Text("Пароль") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
@@ -109,135 +98,44 @@ fun SignUpScreen(navController: NavController) {
 
         // Подтверждение пароля
         OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            value = viewModel.confirmPassword,
+            onValueChange = { viewModel.confirmPassword = it },
             label = { Text("Повторите пароль") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
-        // --------- Сообщения об ошибках/успехе ---------
-        if (error.isNotEmpty()) {
+
+        // Сообщения об ошибках
+        viewModel.error?.let { error ->
             Text(error, color = MaterialTheme.colorScheme.error)
         }
 
-        if (registrationSuccess) {
-            Text("Вы успешно зарегистрировались", color = Color(SUCCESS_COLOR_HEX))
-            LaunchedEffect(Unit) {
-                delay(TRANSITION_DELAY) // Задержка
-                navController.navigate("login") // Переход на главный экран
+        if (viewModel.registrationSuccess) {
+            Text("Успешная регистрация!", color = Color(0xFF2E7D32))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { viewModel.register() },
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .height(48.dp),
+            enabled = !viewModel.isLoading
+        ) {
+            if (viewModel.isLoading) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+            } else {
+                Text("Зарегистрироваться")
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp)) //24
-
-
-        // --------- Кнопка регистрации ---------
-        Button(
-            onClick = {
-                scope.launch {
-                    registerUser(
-                        username = username,
-                        email = email,
-                        password = password,
-                        confirmPassword = confirmPassword,
-                        onError = { errorMessage -> error = errorMessage
-                        },
-                        onSuccess = {
-                            registrationSuccess = true
-                            error = ""
-                            username = ""
-                            email = ""
-                            password = ""
-                            confirmPassword = ""
-                        }
-                    )
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth(BUTTON_MAX_WIDTH)
-                .height(BUTTON_MAX_HEIGHT)
-        ) {
-            Text("Зарегистрироваться")
-        }
-
-
-        Spacer(modifier = Modifier.height(5.dp))
-
-
         TextButton(
-            onClick = { navController.navigate("login") },
-            modifier = Modifier.fillMaxWidth()
+            onClick = { navController.navigate("login") }
         ) {
             Text("Уже есть аккаунт? Войдите")
         }
-    }
-}
-
-// --------- Регистрация пользователя ---------
-private suspend fun registerUser(
-    username: String,
-    email: String,
-    password: String,
-    confirmPassword: String,
-    onError: (String) -> Unit,
-    onSuccess: () -> Unit
-) {
-    try {
-        withContext(Dispatchers.IO) {
-            // Проверка интернет-соединения
-            if (!checkInternetConnection()) {
-                onError("Нет подключения к интернету")
-                return@withContext
-            }
-
-            // Проверка совпадения паролей
-            if (password != confirmPassword) {
-                onError("Пароли не совпадают")
-                return@withContext
-            }
-
-            // Хеширование пароля
-            val hashedPassword = hashPassword(password)
-
-            // Отправка данных в Supabase
-            SupabaseClient.client.from("users").insert(mapOf(
-                "username" to username,
-                "email" to email,
-                "password_hash" to hashedPassword
-            )) {
-                select()
-            }
-
-            // Успешная регистрация
-            onSuccess()
-        }
-    } catch (e: Exception) {
-        val errorMessage = when (e) {
-            is UnknownHostException -> "Ошибка подключения. Проверьте интернет"
-            else -> "Ошибка регистрации: ${e.localizedMessage}"
-        }
-        onError(errorMessage)
-        Log.e("SignUp", "Registration error", e)
-    }
-}
-
-// --------- Хеширование пароля ---------
-fun hashPassword(password: String): String {
-    return BCrypt.withDefaults().hashToString(BCRYPT_COST, password.toCharArray())
-}
-
-// ----- Проверка интернет-соединения -----
-private fun checkInternetConnection(): Boolean {
-    return try {
-        URL("https://google.com").openConnection().apply {
-            connectTimeout = 3000
-            readTimeout = 3000
-        }.connect()
-        true
-    } catch (e: Exception) {
-        Log.w("Network", "No internet connection: ${e.localizedMessage}")
-        false
     }
 }

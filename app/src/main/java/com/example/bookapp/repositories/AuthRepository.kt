@@ -5,6 +5,34 @@ import com.example.bookapp.models.User
 import io.github.jan.supabase.postgrest.from
 
 class AuthRepository {
+    suspend fun registerUser(
+        username: String,
+        email: String,
+        password: String
+    ): Result<Unit> {
+        return try {
+            val hashedPassword = BCrypt.withDefaults()
+                .hashToString(12, password.toCharArray())
+
+            SupabaseClient.client.from("users").insert(mapOf(
+                "username" to username,
+                "email" to email,
+                "password_hash" to hashedPassword
+            )) { select() }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun checkEmailExists(email: String): Boolean {
+        return SupabaseClient.client
+            .from("users")
+            .select { filter { eq("email", email) } }
+            .decodeSingleOrNull<User>() != null
+    }
+
     suspend fun loginUser(email: String, password: String): AuthResult {
         return try {
             val user = SupabaseClient.client
