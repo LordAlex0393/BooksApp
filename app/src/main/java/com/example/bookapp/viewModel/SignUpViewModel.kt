@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bookapp.repositories.AuthRepository
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.net.UnknownHostException
 
@@ -28,26 +29,33 @@ class SignUpViewModel(private val authRepository: AuthRepository) : ViewModel() 
         }
 
         viewModelScope.launch {
-            isLoading = true
-            error = null
-
-            val result = authRepository.registerUser(
-                username = username,
-                email = email,
-                password = password
-            )
-
-            result.onSuccess {
-                registrationSuccess = true
-                clearForm()
-            }.onFailure { e ->
-                error = when (e) {
-                    is UnknownHostException -> "Нет подключения к интернету"
-                    else -> "Ошибка регистрации: ${e.message}"
-                }
+            if (!validateEmail(email)) {
+                error = "Email уже занят"
+                return@launch
             }
 
-            isLoading = false
+            viewModelScope.launch {
+                isLoading = true
+                error = null
+
+                val result = authRepository.registerUser(
+                    username = username,
+                    email = email,
+                    password = password
+                )
+
+                result.onSuccess {
+                    registrationSuccess = true
+                    clearForm()
+                }.onFailure { e ->
+                    error = when (e) {
+                        is UnknownHostException -> "Нет подключения к интернету"
+                        else -> "Ошибка регистрации: ${e.message}"
+                    }
+                }
+
+                isLoading = false
+            }
         }
     }
 
@@ -56,5 +64,11 @@ class SignUpViewModel(private val authRepository: AuthRepository) : ViewModel() 
         email = ""
         password = ""
         confirmPassword = ""
+    }
+
+    suspend fun validateEmail(email: String): Boolean {
+        return viewModelScope.async {
+            !authRepository.checkEmailExists(email)
+        }.await()
     }
 }

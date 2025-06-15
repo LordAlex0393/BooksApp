@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.bookapp.repositories.AuthRepository
 import com.example.bookapp.viewModel.SignUpViewModel
 import com.example.bookapp.viewModel.SignUpViewModelFactory
 import kotlinx.coroutines.delay
@@ -37,7 +38,7 @@ private val PADDING = 52.dp
 @Composable
 fun SignUpScreen(
     navController: NavController,
-    viewModel: SignUpViewModel = viewModel(factory = SignUpViewModelFactory())
+    viewModel: SignUpViewModel = viewModel(factory = SignUpViewModelFactory(AuthRepository()))
 ) {
     // Автоматический переход после регистрации
     if (viewModel.registrationSuccess) {
