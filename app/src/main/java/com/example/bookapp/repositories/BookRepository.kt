@@ -1,7 +1,10 @@
 package com.example.bookapp.repositories
 
+import android.util.Log
 import com.example.bookapp.models.Book
 import com.example.bookapp.models.BookList
+import com.example.bookapp.models.Review
+
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 
@@ -59,13 +62,48 @@ class BookRepository {
             .decodeList<Book>()
     }
 
-    suspend fun getBookById(bookId: String): Book {
+    suspend fun getBookById2(bookId: String): Book {
         return SupabaseClient.client
             .from("books")
             .select {
                 filter { eq("id", bookId) }
             }
             .decodeSingle<Book>()
+    }
+
+    suspend fun getBookById(bookId: String): Book {
+        return SupabaseClient.client
+            .from("books")
+            .select(Columns.raw("""
+            *,
+            reviews:reviews!book_id(rating)
+            """)) {
+                filter { eq("id", bookId) }
+            }
+            .decodeSingle<Book>()
+    }
+
+
+    // BookRepository.kt
+    suspend fun saveReview(review: Review) {
+        try {
+            SupabaseClient.client.from("reviews").insert(review)
+            Log.d("Review", "Review saved successfully")
+        } catch (e: Exception) {
+            Log.e("Review", "Error saving review", e)
+            throw e
+        }
+    }
+
+    suspend fun getUserReview(bookId: String, userId: String): Review? {
+        return SupabaseClient.client.from("reviews")
+            .select {
+                filter {
+                    eq("book_id", bookId)
+                    eq("user_id", userId)
+                }
+            }
+            .decodeSingleOrNull()
     }
 
     fun clearCache() {

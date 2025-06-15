@@ -11,5 +11,10 @@ data class Book(
     val description: String? = null,
     val cover_url: String? = null,
     val year: Int? = null,
+    val reviews: List<Review>? = null,
     val avg_rating: Double? = null
-)
+) {
+    fun calculateAverageRating(): Double {
+        return reviews?.map { it.rating }?.average() ?: 0.0
+    }
+}

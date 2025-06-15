@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,6 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookapp.models.Book
+import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import com.example.bookapp.viewModel.BookViewModel
 import com.example.bookapp.viewModel.BookViewModelFactory
@@ -52,8 +52,13 @@ fun BookScreen(
     val book: Book? by viewModel.book
     val isLoading: Boolean by viewModel.isLoading
     var showReviewDialog by remember { mutableStateOf(false) } // Перенесено внутрь функции
-    var rating by remember { mutableStateOf(0) } // Для рейтинга
-    var reviewText by remember { mutableStateOf("") } // Для текста отзыва
+    var rating by remember { mutableStateOf(0) }
+    var reviewText by remember { mutableStateOf("") }
+    val starColors = remember(rating) { // Добавляем rating как ключ для пересчёта
+        List(5) { index ->
+            if (index < rating) Color(0xFFFFD700) else Color.LightGray
+        }
+    }
 
     LaunchedEffect(bookId) {
         viewModel.loadBook(bookId)
@@ -140,13 +145,14 @@ fun BookScreen(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier
                     .padding(top = 14.dp)
+                    .padding(horizontal = 18.dp)
                     .align(Alignment.Start)
             )
 
             Text(
                 text = book.description ?: "Описание отсутствует",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 20.dp)
+                modifier = Modifier.padding(horizontal = 18.dp)
                     .padding(top = 12.dp)
             )
 
@@ -172,14 +178,15 @@ fun BookScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("Рейтинг:", modifier = Modifier.padding(end = 8.dp))
-                                (1..5).forEach { star ->
+                                (0..4).forEach { index ->
                                     Icon(
-                                        imageVector = if (star <= rating) Icons.Filled.Star else Icons.Outlined.Star,
-                                        contentDescription = "Оценка $star",
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = "Оценка ${index + 1}",
                                         modifier = Modifier
-                                            .clickable { rating = star }
+                                            .clickable { rating = index + 1 }
                                             .padding(4.dp),
-                                        tint = Color(0xFFFFD700))
+                                        tint = starColors[index] // Используем цвет из списка
+                                    )
                                 }
                             }
 
@@ -198,10 +205,17 @@ fun BookScreen(
                     confirmButton = {
                         Button(
                             onClick = {
-                                // TODO: Сохранить отзыв и рейтинг
+                                UserSession.currentUser.value?.let { user ->
+                                    viewModel.saveReview(
+                                        bookId = book.id,
+                                        userId = user.id,
+                                        rating = rating,
+                                        text = reviewText.takeIf { it.isNotBlank() }
+                                    )
+                                }
                                 showReviewDialog = false
                             },
-                            enabled = rating > 0 // Требуем хотя бы одну звезду
+                            enabled = rating > 0
                         ) {
                             Text("Отправить")
                         }
