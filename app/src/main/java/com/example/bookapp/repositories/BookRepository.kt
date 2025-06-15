@@ -59,6 +59,15 @@ class BookRepository {
             .decodeList<Book>()
     }
 
+    suspend fun getBookById(bookId: String): Book {
+        return SupabaseClient.client
+            .from("books")
+            .select {
+                filter { eq("id", bookId) }
+            }
+            .decodeSingle<Book>()
+    }
+
     fun clearCache() {
         cache.clear()
     }

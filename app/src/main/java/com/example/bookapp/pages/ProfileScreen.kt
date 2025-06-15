@@ -163,14 +163,14 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
             modifier = Modifier.fillMaxWidth()
         ) {
             items(bookList.books.size) { index ->
-                BookItem(bookList.books[index])
+                BookItem(bookList.books[index], navController)
             }
         }
     }
 }
 
 @Composable
-private fun BookItem(book: Book) {
+private fun BookItem(book: Book, navController: NavController) {
     Column(
         modifier = Modifier
             .width(BOOK_ITEM_WIDTH)
@@ -196,7 +196,9 @@ private fun BookItem(book: Book) {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .clickable { /* обработка клика */ },
+                .clickable {
+                    navController.navigate("book/${book.id}")
+                },
             contentScale = ContentScale.FillHeight
         )
 
