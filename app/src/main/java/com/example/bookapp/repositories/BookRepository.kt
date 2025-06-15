@@ -72,12 +72,20 @@ class BookRepository {
     }
 
     suspend fun getBookById(bookId: String): Book {
-        return SupabaseClient.client
-            .from("books")
+        return SupabaseClient.client.from("books")
             .select(Columns.raw("""
             *,
-            reviews:reviews!book_id(rating)
-            """)) {
+            reviews:reviews!book_id(
+                id,
+                book_id,
+                user_id,
+                rating,
+                text,
+                created_at,
+                user:users!user_id(username)
+            )
+            """
+            )) {
                 filter { eq("id", bookId) }
             }
             .decodeSingle<Book>()

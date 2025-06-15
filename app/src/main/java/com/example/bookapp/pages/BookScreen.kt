@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookapp.models.Book
+import com.example.bookapp.models.Review
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import com.example.bookapp.viewModel.BookViewModel
@@ -130,7 +132,7 @@ fun BookScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 Text(
                     text = book.year?.toString() + " г." ?: "Год не указан",
@@ -156,19 +158,25 @@ fun BookScreen(
                     .padding(top = 12.dp)
             )
 
+            ReviewsSection(book, navController)
+
             // Кнопка для открытия диалога
             Button(
                 onClick = { showReviewDialog = true },
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
-                    .padding(top = 24.dp)
+                    .padding(top = 12.dp)
             ) {
                 Text("Оставить отзыв")
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
             if (showReviewDialog) {
                 AlertDialog(
                     onDismissRequest = { showReviewDialog = false },
+                    modifier = Modifier
+                        .fillMaxWidth(),
                     title = { Text("Оцените книгу") },
                     text = {
                         Column {
@@ -243,4 +251,103 @@ fun BookCover(book: Book, modifier: Modifier = Modifier) {
         contentDescription = "Обложка: ${book.title}",
         modifier = modifier,
         contentScale = ContentScale.Fit)
+}
+
+
+@Composable
+private fun ReviewsSection(book: Book, navController: NavController) {
+    val visibleReviews = remember { 3 } // Показываем 3 последних отзыва
+    val reviews = book.reviews?.take(visibleReviews) ?: emptyList()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 24.dp)
+    ) {
+        // Заголовок и кнопка "Все отзывы"
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "Отзывы",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f)
+            )
+
+            if ((book.reviews?.size ?: 0) > visibleReviews) {
+                TextButton(
+                    onClick = { navController.navigate("book/${book.id}/reviews") }
+                ) {
+                    Text("Все отзывы")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (reviews.isEmpty()) {
+            Text(
+                text = "Пока нет отзывов",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        } else {
+            Column {
+                reviews.forEach { review ->
+                    ReviewItem(review)
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReviewItem(review: Review) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 18.dp)
+    ) {
+        // Рейтинг
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            (1..5).forEach { star ->
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = if (star <= review.rating) Color(0xFFFFD700) else Color.LightGray,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = review.user_id?.take(8) ?: "Аноним", // Временное решение, лучше загружать имя пользователя
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+        }
+
+        // Текст отзыва
+        if (!review.text.isNullOrBlank()) {
+            Text(
+                text = review.text,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp))
+        }
+
+        // Дата
+        review.created_at?.let {
+            Text(
+                text = it.formatDate(), // Нужно реализовать функцию форматирования
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+}
+
+// Добавьте в утилиты
+fun String.formatDate(): String {
+    // Реализуйте форматирование даты по желанию
+    return this.substring(0, 10) // Простой пример: 2023-01-01
 }

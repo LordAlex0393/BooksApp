@@ -1,5 +1,6 @@
 package com.example.bookapp.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,5 +10,12 @@ data class Review(
     val user_id: String? = null,
     val rating: Int,
     val text: String? = null,
-    val created_at: String? = null
+    val created_at: String? = null,
+    @SerialName("user")
+    val user: ReviewUser? = null
+)
+
+@Serializable
+data class ReviewUser(
+    val username: String
 )
