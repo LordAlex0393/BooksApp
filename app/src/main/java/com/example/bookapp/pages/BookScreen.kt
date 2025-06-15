@@ -322,7 +322,7 @@ fun ReviewItem(review: Review) {
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = review.user_id?.take(8) ?: "Аноним", // Временное решение, лучше загружать имя пользователя
+                text = review.username?.username ?: "Аноним", // Временное решение, лучше загружать имя пользователя
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         }

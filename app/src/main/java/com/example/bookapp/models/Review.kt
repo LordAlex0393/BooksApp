@@ -12,7 +12,7 @@ data class Review(
     val text: String? = null,
     val created_at: String? = null,
     @SerialName("user")
-    val user: ReviewUser? = null
+    val username: ReviewUser? = null
 )
 
 @Serializable

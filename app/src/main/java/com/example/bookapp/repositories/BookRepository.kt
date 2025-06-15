@@ -95,10 +95,14 @@ class BookRepository {
     // BookRepository.kt
     suspend fun saveReview(review: Review) {
         try {
-            SupabaseClient.client.from("reviews").insert(review)
-            Log.d("Review", "Review saved successfully")
+            SupabaseClient.client.from("reviews")
+                .upsert(review) {  // Используем upsert вместо insert
+                    onConflict = "user_id,book_id"  // Указываем колонки для проверки конфликта
+                    ignoreDuplicates = false  // Обновляем при конфликте
+                }
+            Log.d("Review", "Review upserted successfully")
         } catch (e: Exception) {
-            Log.e("Review", "Error saving review", e)
+            Log.e("Review", "Error upserting review", e)
             throw e
         }
     }
