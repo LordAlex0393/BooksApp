@@ -48,7 +48,7 @@ android {
 
 dependencies {
 // Android and Kotlin Core Dependencies
-    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.core:core-ktx:1.16.0")
 
 // Testing
     testImplementation(libs.junit)
@@ -98,5 +98,5 @@ dependencies {
 
 
     implementation("androidx.compose.material:material-icons-core:1.6.0")
-    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
 }
