@@ -44,15 +44,16 @@ class BookRepository {
         return SupabaseClient.client
             .from("books")
             .select(Columns.raw("""
-                id, 
-                title, 
-                author, 
-                genre, 
-                description, 
-                cover_url, 
-                year, 
-                book_list_items!inner(book_list_id)
-            """)) {
+            id, 
+            title, 
+            author, 
+            genre, 
+            description, 
+            cover_url, 
+            year, 
+            avg_rating,
+            book_list_items!inner(book_list_id)
+        """)) {
                 filter { eq("book_list_items.book_list_id", bookListId) }
             }
             .decodeList<Book>()

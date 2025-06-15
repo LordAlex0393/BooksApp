@@ -10,5 +10,6 @@ data class Book(
     val genre: String? = null,
     val description: String? = null,
     val cover_url: String? = null,
-    val year: Int? = null
+    val year: Int? = null,
+    val avg_rating: Double? = null
 )
