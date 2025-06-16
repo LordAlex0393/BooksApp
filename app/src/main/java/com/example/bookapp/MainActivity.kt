@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.bookapp.pages.AllReviewsScreen
+import com.example.bookapp.pages.BookListScreen
 import com.example.bookapp.pages.BookScreen
 
 class MainActivity : ComponentActivity() {
@@ -45,6 +46,12 @@ fun App() {
             AllReviewsScreen(
                 navController = navController,
                 bookId = backStackEntry.arguments?.getString("bookId")!!
+            )
+        }
+        composable("list/{listId}") { backStackEntry ->
+            BookListScreen(
+                navController = navController,
+                listId = backStackEntry.arguments?.getString("listId")!!
             )
         }
     }

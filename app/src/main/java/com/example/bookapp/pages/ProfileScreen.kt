@@ -44,9 +44,9 @@ private val PADDING = 24.dp
 private val BOOKLIST_TITLE_PADDING = 8.dp
 private val BOOKLIST_SPASE = 28.dp
 
-private val BOOK_ITEM_HEIGHT = 180.dp
+private val BOOK_ITEM_HEIGHT = 190.dp
 private val BOOK_ITEM_WIDTH = 120.dp
-private val LIST_SPACING = 12.dp
+private val LIST_SPACING = 14.dp
 
 private val CREATE_LIST_BUTTON_HEIGHT = 56.dp
 private val CREATE_LIST_BUTTON_WIDTH = 0.8f
@@ -149,8 +149,8 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
             )
 
             TextButton(
-                onClick = { /* Навигация на полный список */ },
-                modifier = Modifier.weight(0.4f)
+                onClick = { navController.navigate("list/${bookList.id}") },
+                modifier = Modifier.weight(0.5f)
             ) {
                 Text("Посмотреть все", style = MaterialTheme.typography.labelLarge)
             }
@@ -195,7 +195,8 @@ private fun BookItem(book: Book, navController: NavController) {
             contentDescription = "Обложка книги: ${book.title}",
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .weight(0.2f)
+                .height(32.dp)
                 .clickable {
                     navController.navigate("book/${book.id}")
                 },

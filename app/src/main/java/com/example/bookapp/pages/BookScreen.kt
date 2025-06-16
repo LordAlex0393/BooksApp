@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -78,22 +80,39 @@ fun BookScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Шапка с кнопкой назад
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = "",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
+
             // Обложка книги
             BookCover(
                 book,
                 modifier = Modifier
                     .size(350.dp)
-                    .padding(top = 24.dp)
+                    .padding(top = 2.dp)
             )
 
             // Название и автор
             Text(
                 text = book.title,
                 style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(top = 26.dp)
+                modifier = Modifier
+                    .padding(top = 26.dp)
+                    .align(alignment = Alignment.CenterHorizontally)
             )
 
             // Автор
@@ -293,7 +312,8 @@ private fun ReviewsSection(book: Book, navController: NavController) {
             Text(
                 text = "Пока нет отзывов",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 18.dp)
             )
         } else {
             Column {
