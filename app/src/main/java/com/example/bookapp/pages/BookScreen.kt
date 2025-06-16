@@ -45,7 +45,7 @@ import com.example.bookapp.models.Review
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import com.example.bookapp.viewModel.BookViewModel
-import com.example.bookapp.viewModel.BookViewModelFactory
+import com.example.bookapp.viewModelFactory.BookViewModelFactory
 
 @Composable
 fun BookScreen(

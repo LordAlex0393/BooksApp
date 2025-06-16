@@ -22,7 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.bookapp.repositories.AuthRepository
 import com.example.bookapp.viewModel.LoginViewModel
-import com.example.bookapp.viewModel.LoginViewModelFactory
+import com.example.bookapp.viewModelFactory.LoginViewModelFactory
 
 private const val BUTTON_MAX_WIDTH = 0.5f
 private val BUTTON_MAX_HEIGHT = 48.dp

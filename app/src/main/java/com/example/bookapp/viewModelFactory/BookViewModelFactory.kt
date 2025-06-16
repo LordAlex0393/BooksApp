@@ -1,8 +1,9 @@
-package com.example.bookapp.viewModel
+package com.example.bookapp.viewModelFactory
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.bookapp.repositories.BookRepository
+import com.example.bookapp.viewModel.BookViewModel
 
 class BookViewModelFactory(
     private val repository: BookRepository

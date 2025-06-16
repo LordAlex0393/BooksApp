@@ -130,6 +130,27 @@ class BookRepository {
         cache.clear()
     }
 
+    suspend fun deleteBookList(listId: String) {
+        // Удаляем связи пользователя со списком
+        SupabaseClient.client.from("user_book_lists")
+            .delete {
+                filter {
+                    eq("book_list_id", listId)
+                }
+            }
+
+        // Удаляем сам список
+        SupabaseClient.client.from("book_lists")
+            .delete {
+                filter {
+                    eq("id", listId)
+                }
+            }
+
+        // Очищаем кэш
+        cache.clear()
+    }
+
     fun clearCache() {
         cache.clear()
     }

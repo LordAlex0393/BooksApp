@@ -23,7 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.bookapp.repositories.AuthRepository
 import com.example.bookapp.viewModel.SignUpViewModel
-import com.example.bookapp.viewModel.SignUpViewModelFactory
+import com.example.bookapp.viewModelFactory.SignUpViewModelFactory
 import kotlinx.coroutines.delay
 
 // ============= КОНСТАНТЫ И КОНФИГУРАЦИЯ =============

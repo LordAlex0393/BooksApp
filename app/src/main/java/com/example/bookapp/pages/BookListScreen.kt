@@ -20,10 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,7 +49,8 @@ import com.example.bookapp.models.Book
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.ui.theme.LoadingIndicator
 import com.example.bookapp.viewModel.ProfileViewModel
-import com.example.bookapp.viewModel.ProfileViewModelFactory
+import com.example.bookapp.viewModelFactory.ProfileViewModelFactory
+
 
 @Composable
 fun BookListScreen(
@@ -56,11 +60,39 @@ fun BookListScreen(
 ) {
     val bookLists by viewModel.bookLists.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    var showDeleteListDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(listId) {
         UserSession.currentUser.value?.id?.let { userId ->
             viewModel.loadUserBookLists(userId)
         }
+    }
+
+    // Диалог подтверждения удаления списка
+    if (showDeleteListDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteListDialog = false },
+            title = { Text("Удаление списка") },
+            text = { Text("Вы точно хотите удалить этот список? Все книги в нём будут удалены.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteBookList(listId)
+                        navController.popBackStack()
+                        showDeleteListDialog = false
+                    }
+                ) {
+                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteListDialog = false }
+                ) {
+                    Text("Отмена")
+                }
+            }
+        )
     }
 
     if (isLoading) {
@@ -99,13 +131,37 @@ fun BookListScreen(
                 }
             }
             currentList.books.isEmpty() -> {
-                Text(
-                    text = "Этот список пуст",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    textAlign = TextAlign.Center
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Этот список пуст",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                    // Кнопка удаления списка
+                    Button(
+                        onClick = { showDeleteListDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .padding(top = 16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Удалить список",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Удалить список")
+                    }
+                }
             }
             else -> {
                 LazyColumn(
@@ -121,6 +177,33 @@ fun BookListScreen(
                                 viewModel.removeBookFromList(listId, bookId)
                             }
                         )
+                    }
+
+                    // Кнопка удаления списка в конце
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            OutlinedButton(
+                                onClick = { showDeleteListDialog = true },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth(0.6f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Удалить список",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Удалить список")
+                            }
+                        }
                     }
                 }
             }
@@ -150,7 +233,7 @@ fun BookListItem(
                         showDeleteDialog = false
                     }
                 ) {
-                    Text("Удалить")
+                    Text("Удалить", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {

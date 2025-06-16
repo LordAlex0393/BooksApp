@@ -36,7 +36,7 @@ import com.example.bookapp.models.BookList
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.ui.theme.LoadingIndicator
 import com.example.bookapp.viewModel.ProfileViewModel
-import com.example.bookapp.viewModel.ProfileViewModelFactory
+import com.example.bookapp.viewModelFactory.ProfileViewModelFactory
 
 private const val LIST_TITLE_MAX_WIDTH = 0.8f
 private val PADDING = 24.dp

@@ -75,6 +75,20 @@ class ProfileViewModel(
             }
         }
     }
+
+    fun deleteBookList(listId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteBookList(listId)
+                // Обновляем данные после удаления
+                UserSession.currentUser.value?.id?.let { userId ->
+                    loadUserBookLists(userId)
+                }
+            } catch (e: Exception) {
+                // Обработка ошибок
+            }
+        }
+    }
 }
 
 // Кастомные исключения (можно вынести в отдельный файл)
