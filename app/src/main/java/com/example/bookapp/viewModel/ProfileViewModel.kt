@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bookapp.models.BookList
+import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,20 @@ class ProfileViewModel(
     // Сброс ошибки
     fun clearError() {
         _error.value = null
+    }
+
+    fun removeBookFromList(listId: String, bookId: String) {
+        viewModelScope.launch {
+            try {
+                repository.removeBookFromList(listId, bookId)
+                // Обновляем данные после удаления
+                UserSession.currentUser.value?.id?.let { userId ->
+                    loadUserBookLists(userId)
+                }
+            } catch (e: Exception) {
+                // Обработка ошибок
+            }
+        }
     }
 }
 

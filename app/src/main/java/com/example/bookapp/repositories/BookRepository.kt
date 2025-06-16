@@ -118,6 +118,18 @@ class BookRepository {
             .decodeSingleOrNull()
     }
 
+    suspend fun removeBookFromList(listId: String, bookId: String) {
+        SupabaseClient.client.from("book_list_items")
+            .delete {
+                filter {
+                    eq("book_list_id", listId)
+                    eq("book_id", bookId)
+                }
+            }
+        // Очищаем кэш, чтобы при следующем запросе получить актуальные данные
+        cache.clear()
+    }
+
     fun clearCache() {
         cache.clear()
     }

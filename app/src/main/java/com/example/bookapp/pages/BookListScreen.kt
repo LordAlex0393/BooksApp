@@ -12,22 +12,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -69,7 +74,6 @@ fun BookListScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
-                .verticalScroll(rememberScrollState())
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
@@ -109,7 +113,14 @@ fun BookListScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(currentList.books) { book ->
-                        BookListItem(book, navController)
+                        BookListItem(
+                            book = book,
+                            listId = listId,
+                            navController = navController,
+                            onDeleteClick = { bookId ->
+                                viewModel.removeBookFromList(listId, bookId)
+                            }
+                        )
                     }
                 }
             }
@@ -118,29 +129,65 @@ fun BookListScreen(
 }
 
 @Composable
-fun BookListItem(book: Book, navController: NavController) {
+fun BookListItem(
+    book: Book,
+    listId: String,
+    navController: NavController,
+    onDeleteClick: (String) -> Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Диалог подтверждения удаления
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Удаление книги") },
+            text = { Text("Вы точно хотите удалить книгу из списка?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick(book.id)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Удалить")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { navController.navigate("book/${book.id}") }
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Обложка книги с фиксированной шириной
-            BookCoverImage(
-                coverUrl = book.cover_url,
+            // Обложка книги
+            Box(
                 modifier = Modifier
                     .width(70.dp)
                     .height(110.dp)
-            )
+                    .clickable { navController.navigate("book/${book.id}") }
+            ) {
+                BookCoverImage(coverUrl = book.cover_url)
+            }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             // Информация о книге
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { navController.navigate("book/${book.id}") }
             ) {
                 Text(
                     text = book.title ?: "Без названия",
@@ -158,18 +205,32 @@ fun BookListItem(book: Book, navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = (book.genre.toString()) ?: "Без жанра",
+                    text = book.genre?.toString() ?: "Без жанра",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = (book.year.toString() + " г.") ?: "Дата неизвестна",
+                    text = book.year?.toString()?.plus(" г.") ?: "Дата неизвестна",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Кнопка удаления
+            IconButton(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Удалить книгу",
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
         }
@@ -177,14 +238,14 @@ fun BookListItem(book: Book, navController: NavController) {
 }
 
 @Composable
-fun BookCoverImage(coverUrl: String?, modifier: Modifier = Modifier) {
+fun BookCoverImage(coverUrl: String?) {
     val painter = rememberAsyncImagePainter(
         model = coverUrl,
-        error = null // Плейсхолдер при ошибке загрузки
+        error = null
     )
 
     Card(
-        modifier = modifier,
+        modifier = Modifier.fillMaxSize(),
         shape = MaterialTheme.shapes.medium
     ) {
         if (coverUrl != null) {
