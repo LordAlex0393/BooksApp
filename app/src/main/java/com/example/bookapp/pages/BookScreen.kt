@@ -154,7 +154,8 @@ fun BookScreen(
             Text(
                 text = book.description ?: "Описание отсутствует",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 18.dp)
+                modifier = Modifier
+                    .padding(horizontal = 18.dp)
                     .padding(top = 12.dp)
             )
 
@@ -250,7 +251,8 @@ fun BookCover(book: Book, modifier: Modifier = Modifier) {
         painter = painter,
         contentDescription = "Обложка: ${book.title}",
         modifier = modifier,
-        contentScale = ContentScale.Fit)
+        contentScale = ContentScale.Fit
+    )
 }
 
 
@@ -272,19 +274,20 @@ private fun ReviewsSection(book: Book, navController: NavController) {
             Text(
                 text = "Отзывы",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 18.dp)
             )
 
-            if ((book.reviews?.size ?: 0) > visibleReviews) {
-                TextButton(
-                    onClick = { navController.navigate("book/${book.id}/reviews") }
-                ) {
-                    Text("Все отзывы")
-                }
+            TextButton(
+                onClick = { navController.navigate("book/${book.id}/reviews") },
+                modifier = Modifier.weight(0.4f)
+            ) {
+                Text("Все отзывы", style = MaterialTheme.typography.labelLarge)
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
         if (reviews.isEmpty()) {
             Text(
@@ -322,9 +325,11 @@ fun ReviewItem(review: Review) {
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = review.username?.username ?: "Аноним", // Временное решение, лучше загружать имя пользователя
+                text = review.username?.username
+                    ?: "Аноним", // Временное решение, лучше загружать имя пользователя
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
         }
 
         // Текст отзыва
@@ -332,7 +337,8 @@ fun ReviewItem(review: Review) {
             Text(
                 text = review.text,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 4.dp))
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
 
         // Дата
@@ -341,7 +347,8 @@ fun ReviewItem(review: Review) {
                 text = it.formatDate(), // Нужно реализовать функцию форматирования
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                modifier = Modifier.padding(top = 4.dp))
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }
