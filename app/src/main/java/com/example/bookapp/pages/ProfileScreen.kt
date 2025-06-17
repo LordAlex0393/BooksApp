@@ -13,14 +13,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -63,6 +68,8 @@ fun ProfileScreen(
 ) {
     val bookLists by viewModel.bookLists.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    var showCreateListDialog by remember { mutableStateOf(false) }
+    var newListName by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         UserSession.currentUser.value?.id?.let { userId ->
@@ -73,6 +80,53 @@ fun ProfileScreen(
     if (isLoading) {
         LoadingIndicator()
         return
+    }
+
+    // Диалог создания нового списка
+    if (showCreateListDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateListDialog = false },
+            title = { Text("Создать новый список") },
+            text = {
+                Column {
+                    Text("Введите название списка:")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newListName,
+                        onValueChange = { newListName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("Мой список книг") }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newListName.isNotBlank()) {
+                            UserSession.currentUser.value?.id?.let { userId ->
+                                viewModel.createBookList(userId, newListName)
+                            }
+                            newListName = ""
+                            showCreateListDialog = false
+                        }
+                    },
+                    enabled = newListName.isNotBlank()
+                ) {
+                    Text("Создать")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        newListName = ""
+                        showCreateListDialog = false
+                    }
+                ) {
+                    Text("Отмена")
+                }
+            }
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -117,7 +171,7 @@ fun ProfileScreen(
             // Кнопка "Новый список"
             item {
                 OutlinedButton(
-                    onClick = { /* ... */ },
+                    onClick = { showCreateListDialog = true },
                     modifier = Modifier
                         .height(CREATE_LIST_BUTTON_HEIGHT)
                         .fillMaxWidth(CREATE_LIST_BUTTON_WIDTH)

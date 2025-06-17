@@ -99,4 +99,6 @@ dependencies {
 
     implementation("androidx.compose.material:material-icons-core:1.6.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:2.2.0") // или новее
 }

@@ -4,9 +4,9 @@ import android.util.Log
 import com.example.bookapp.models.Book
 import com.example.bookapp.models.BookList
 import com.example.bookapp.models.Review
-
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.datetime.Clock.System
 
 class BookRepository {
     private val cache = mutableMapOf<String, List<BookList>>()
@@ -22,6 +22,7 @@ class BookRepository {
             .select(Columns.raw("""
                 id, 
                 name, 
+                creator_id,
                 created_at, 
                 user_book_lists!inner(user_id)
             """)) {
@@ -33,6 +34,7 @@ class BookRepository {
             BookList(
                 id = bookListDB.id,
                 name = bookListDB.name,
+                creator_id = bookListDB.creator_id,
                 created_at = bookListDB.created_at,
                 books = getBooksByListId(bookListDB.id)
             )
@@ -149,6 +151,37 @@ class BookRepository {
 
         // Очищаем кэш
         cache.clear()
+    }
+
+    suspend fun createBookList(userId: String, listName: String) {
+        try {
+            // 1. Создаем список с указанием создателя
+            val newList = SupabaseClient.client.from("book_lists")
+                .insert(
+                    mapOf(
+                        "name" to listName,
+                        "created_at" to System.now().toString(),
+                        "creator_id" to userId  // Важное изменение!
+                    )
+                ) {
+                    select(columns = Columns.list("id", "creator_id"))
+                }
+                .decodeSingle<BookList>()
+
+            // 2. Создаем связь для доступа (если нужно)
+            SupabaseClient.client.from("user_book_lists")
+                .insert(
+                    mapOf(
+                        "user_id" to userId,
+                        "book_list_id" to newList.id
+                    )
+                )
+
+            cache.clear()
+        } catch (e: Exception) {
+            Log.e("BookRepository", "Error creating list", e)
+            throw e
+        }
     }
 
     fun clearCache() {

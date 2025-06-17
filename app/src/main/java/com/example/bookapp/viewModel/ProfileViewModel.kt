@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.bookapp.models.BookList
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
+import com.example.bookapp.repositories.SupabaseClient
+import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -79,11 +81,38 @@ class ProfileViewModel(
     fun deleteBookList(listId: String) {
         viewModelScope.launch {
             try {
-                repository.deleteBookList(listId)
-                // Обновляем данные после удаления
-                UserSession.currentUser.value?.id?.let { userId ->
-                    loadUserBookLists(userId)
+                val currentUserId = UserSession.currentUser.value?.id
+                    ?: throw Exception("User not authenticated")
+
+                // Проверяем, что пользователь - создатель списка
+                val list = SupabaseClient.client.from("book_lists")
+                    .select {filter{ eq("id", listId) }}
+                    .decodeSingle<BookList>()
+
+                if (list.creator_id != currentUserId) {
+                    throw SecurityException("Only list creator can delete it")
                 }
+
+                // Удаление списка
+                repository.deleteBookList(listId)
+                loadUserBookLists(currentUserId)
+
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Delete list error", e)
+                _error.value = when (e) {
+                    is SecurityException -> "Только создатель может удалить список"
+                    else -> "Ошибка удаления списка"
+                }
+            }
+        }
+    }
+
+    fun createBookList(userId: String, listName: String) {
+        viewModelScope.launch {
+            try {
+                repository.createBookList(userId, listName)
+                // Обновляем данные после создания
+                loadUserBookLists(userId)
             } catch (e: Exception) {
                 // Обработка ошибок
             }
