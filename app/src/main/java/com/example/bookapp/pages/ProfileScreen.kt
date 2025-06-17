@@ -71,6 +71,7 @@ fun ProfileScreen(
     var showCreateListDialog by remember { mutableStateOf(false) }
     var newListName by remember { mutableStateOf("") }
 
+
     LaunchedEffect(Unit) {
         UserSession.currentUser.value?.id?.let { userId ->
             viewModel.loadUserBookLists(userId)

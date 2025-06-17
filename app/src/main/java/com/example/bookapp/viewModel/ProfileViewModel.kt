@@ -84,21 +84,20 @@ class ProfileViewModel(
                 val currentUserId = UserSession.currentUser.value?.id
                     ?: throw Exception("User not authenticated")
 
-                // Проверяем, что пользователь - создатель списка
+                // Проверяем права
                 val list = SupabaseClient.client.from("book_lists")
-                    .select {filter{ eq("id", listId) }}
+                    .select { filter { eq("id", listId) } }
                     .decodeSingle<BookList>()
 
                 if (list.creator_id != currentUserId) {
                     throw SecurityException("Only list creator can delete it")
                 }
 
-                // Удаление списка
                 repository.deleteBookList(listId)
-                loadUserBookLists(currentUserId)
+                // Обновляем локальное состояние
+                _bookLists.value = _bookLists.value.filter { it.id != listId }
 
             } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Delete list error", e)
                 _error.value = when (e) {
                     is SecurityException -> "Только создатель может удалить список"
                     else -> "Ошибка удаления списка"
@@ -110,11 +109,15 @@ class ProfileViewModel(
     fun createBookList(userId: String, listName: String) {
         viewModelScope.launch {
             try {
-                repository.createBookList(userId, listName)
-                // Обновляем данные после создания
-                loadUserBookLists(userId)
+                if (!repository.isListNameUnique(userId, listName)) {
+                    throw Exception("Список с таким именем уже существует")
+                }
+
+                val newList = repository.createBookList(userId, listName)
+                _bookLists.value = _bookLists.value + newList
+
             } catch (e: Exception) {
-                // Обработка ошибок
+                _error.value = e.message ?: "Ошибка создания списка"
             }
         }
     }

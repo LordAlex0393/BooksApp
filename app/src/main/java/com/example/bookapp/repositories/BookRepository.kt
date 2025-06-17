@@ -153,22 +153,22 @@ class BookRepository {
         cache.clear()
     }
 
-    suspend fun createBookList(userId: String, listName: String) {
+    suspend fun createBookList(userId: String, listName: String): BookList {
         try {
-            // 1. Создаем список с указанием создателя
+            // 1. Создаем список
             val newList = SupabaseClient.client.from("book_lists")
                 .insert(
                     mapOf(
                         "name" to listName,
                         "created_at" to System.now().toString(),
-                        "creator_id" to userId  // Важное изменение!
+                        "creator_id" to userId
                     )
                 ) {
-                    select(columns = Columns.list("id", "creator_id"))
+                    select(columns = Columns.list("id", "name", "creator_id", "created_at"))
                 }
                 .decodeSingle<BookList>()
 
-            // 2. Создаем связь для доступа (если нужно)
+            // 2. Создаем связь для доступа
             SupabaseClient.client.from("user_book_lists")
                 .insert(
                     mapOf(
@@ -178,10 +178,24 @@ class BookRepository {
                 )
 
             cache.clear()
+            return newList.copy(books = emptyList()) // Возвращаем список без книг
+
         } catch (e: Exception) {
             Log.e("BookRepository", "Error creating list", e)
             throw e
         }
+    }
+
+    suspend fun isListNameUnique(userId: String, name: String): Boolean {
+        return SupabaseClient.client.from("book_lists")
+            .select {
+                filter {
+                    eq("creator_id", userId)
+                    eq("name", name)
+                }
+            }
+            .decodeList<BookList>()
+            .isEmpty()
     }
 
     fun clearCache() {
