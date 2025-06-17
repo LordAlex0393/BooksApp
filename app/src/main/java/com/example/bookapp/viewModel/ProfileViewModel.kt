@@ -100,7 +100,7 @@ class ProfileViewModel(
             } catch (e: Exception) {
                 _error.value = when (e) {
                     is SecurityException -> "Только создатель может удалить список"
-                    else -> "Ошибка удаления списка"
+                    else -> "Ошибка удаления списка: ${e.message}"
                 }
             }
         }
@@ -114,7 +114,8 @@ class ProfileViewModel(
                 }
 
                 val newList = repository.createBookList(userId, listName)
-                _bookLists.value = _bookLists.value + newList
+                // Вместо локального добавления, перезагружаем данные
+                loadUserBookLists(userId, true) // forceRefresh = true
 
             } catch (e: Exception) {
                 _error.value = e.message ?: "Ошибка создания списка"

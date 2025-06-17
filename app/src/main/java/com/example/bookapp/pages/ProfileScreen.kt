@@ -17,6 +17,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,7 +71,16 @@ fun ProfileScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     var showCreateListDialog by remember { mutableStateOf(false) }
     var newListName by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
 
+    // Добавляем обработчик ошибок
+    val error by viewModel.error.collectAsState()
+    error?.let { err ->
+        LaunchedEffect(err) {
+            snackbarHostState.showSnackbar(err)
+            viewModel.clearError()
+        }
+    }
 
     LaunchedEffect(Unit) {
         UserSession.currentUser.value?.id?.let { userId ->
