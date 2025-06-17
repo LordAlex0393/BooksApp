@@ -78,7 +78,7 @@ fun BookListScreen(
                 TextButton(
                     onClick = {
                         viewModel.deleteBookList(listId)
-                        navController.popBackStack()
+                        navController.navigate("profile")
                         showDeleteListDialog = false
                     }
                 ) {

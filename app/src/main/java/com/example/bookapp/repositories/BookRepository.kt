@@ -133,13 +133,13 @@ class BookRepository {
     }
 
     suspend fun deleteBookList(listId: String) {
-        // Удаляем связи пользователя со списком
-        SupabaseClient.client.from("user_book_lists")
-            .delete {
-                filter {
-                    eq("book_list_id", listId)
-                }
-            }
+        // Удаляем связи пользователя со списком !ТЕПЕРЬ ДЕЛАЕТСЯ КАСКАДНЫМ УДАЛЕНИЕМ ВНУТРИ SUPABASE!!!
+//        SupabaseClient.client.from("user_book_lists")
+//            .delete {
+//                filter {
+//                    eq("book_list_id", listId)
+//                }
+//            }
 
         // Удаляем сам список
         SupabaseClient.client.from("book_lists")
