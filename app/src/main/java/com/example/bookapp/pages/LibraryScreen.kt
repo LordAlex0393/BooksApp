@@ -125,7 +125,8 @@ private fun LibraryHeader(navController: NavController) {
                     Icon(
                         Icons.Default.Person,
                         contentDescription = "Профиль",
-                        modifier = Modifier.size(28.dp), // Slightly larger icon for aesthetics
+                        modifier = Modifier.size(36.dp)
+                            .padding(horizontal = 10.dp), // Slightly larger icon for aesthetics
                         tint = MaterialTheme.colorScheme.primary // Give it a primary color tint
                     )
                 }

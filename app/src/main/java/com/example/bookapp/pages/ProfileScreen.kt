@@ -2,7 +2,6 @@
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,10 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -48,7 +52,7 @@ private const val LIST_TITLE_MAX_WIDTH = 0.8f
 private val PADDING = 24.dp
 
 private val BOOKLIST_TITLE_PADDING = 8.dp
-private val BOOKLIST_SPASE = 28.dp
+private val BOOKLIST_SPASE = 16.dp
 
 private val BOOK_ITEM_HEIGHT = 190.dp
 private val BOOK_ITEM_WIDTH = 120.dp
@@ -140,40 +144,43 @@ fun ProfileScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Новая шапка с кнопкой назад и названием
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Кнопка назад
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Назад"
+                )
+            }
+
+            // Название экрана по центру
+            Text(
+                text = "Профиль",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
+
+            // Пустой элемент для выравнивания
+            Spacer(modifier = Modifier.size(48.dp)) // Размер иконки назад
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Списки книг
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(PADDING),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Заголовок "Профиль"
-            item {
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text(
-                    text = "Профиль",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-
-                UserSession.currentUser.value?.let { user ->
-                    Text(
-                        text = user.username,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(top = USERNAME_PADDING_TOP)
-                            .fillMaxWidth()
-                            .padding(start = USERNAME_PADDING_START, top = USERNAME_PADDING_TOP),
-                        textAlign = TextAlign.Left
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-
-            // Списки книг
             items(bookLists.size) { index ->
                 BookListSection(bookLists[index], navController)
                 Spacer(modifier = Modifier.height(BOOKLIST_SPASE))
@@ -184,9 +191,8 @@ fun ProfileScreen(
                 OutlinedButton(
                     onClick = { showCreateListDialog = true },
                     modifier = Modifier
-                        .height(CREATE_LIST_BUTTON_HEIGHT)
-                        .fillMaxWidth(CREATE_LIST_BUTTON_WIDTH)
-                        .padding(top = CREATE_LIST_BUTTON_PADDING_TOP)
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 32.dp)
                 ) {
                     Text("Новый список")
                 }
@@ -220,8 +226,6 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
                 Text("Посмотреть все", style = MaterialTheme.typography.labelLarge)
             }
         }
-
-        //Spacer(modifier = Modifier.height(1.dp))
 
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(LIST_SPACING),
