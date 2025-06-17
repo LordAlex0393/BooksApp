@@ -64,15 +64,6 @@ class BookRepository {
             .decodeList<Book>()
     }
 
-    suspend fun getBookById2(bookId: String): Book {
-        return SupabaseClient.client
-            .from("books")
-            .select {
-                filter { eq("id", bookId) }
-            }
-            .decodeSingle<Book>()
-    }
-
     suspend fun getBookById(bookId: String): Book {
         return SupabaseClient.client.from("books")
             .select(Columns.raw("""
@@ -132,26 +123,7 @@ class BookRepository {
         cache.clear()
     }
 
-    suspend fun deleteBookList(listId: String) {
-        // Удаляем связи пользователя со списком !ТЕПЕРЬ ДЕЛАЕТСЯ КАСКАДНЫМ УДАЛЕНИЕМ ВНУТРИ SUPABASE!!!
-//        SupabaseClient.client.from("user_book_lists")
-//            .delete {
-//                filter {
-//                    eq("book_list_id", listId)
-//                }
-//            }
 
-        // Удаляем сам список
-        SupabaseClient.client.from("book_lists")
-            .delete {
-                filter {
-                    eq("id", listId)
-                }
-            }
-
-        // Очищаем кэш
-        cache.clear()
-    }
 
     suspend fun createBookList(userId: String, listName: String): BookList {
         try {
@@ -182,6 +154,23 @@ class BookRepository {
 
         } catch (e: Exception) {
             Log.e("BookRepository", "Error creating list", e)
+            throw e
+        }
+    }
+
+    suspend fun deleteBookList(listId: String) {
+        try {
+
+            // Удаляем сам список
+            SupabaseClient.client.from("book_lists")
+                .delete {
+                    filter { eq("id", listId) }
+                }
+
+            // Очищаем кэш
+            cache.clear()
+        } catch (e: Exception) {
+            Log.e("BookRepository", "Error deleting list", e)
             throw e
         }
     }

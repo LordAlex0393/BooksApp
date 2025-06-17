@@ -77,8 +77,9 @@ fun BookListScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteBookList(listId)
-                        navController.navigate("profile")
+                        viewModel.deleteBookList(listId) {
+                            navController.navigate("profile") // Возвращаемся назад после удаления
+                        }
                         showDeleteListDialog = false
                     }
                 ) {
