@@ -36,7 +36,7 @@ fun LoginScreen(
     // Автоматический переход после успешного входа
     if (viewModel.loginSuccess) {
         LaunchedEffect(Unit) {
-            navController.navigate("profile") {
+            navController.navigate("library") {
                 popUpTo("login") { inclusive = true }
             }
         }

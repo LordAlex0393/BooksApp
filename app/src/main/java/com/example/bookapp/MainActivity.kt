@@ -16,6 +16,7 @@ import androidx.navigation.navArgument
 import com.example.bookapp.pages.AllReviewsScreen
 import com.example.bookapp.pages.BookListScreen
 import com.example.bookapp.pages.BookScreen
+import com.example.bookapp.pages.LibraryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,6 +34,7 @@ fun App() {
         composable("login") { LoginScreen(navController) }
         composable("signup") { SignUpScreen(navController) }
         composable("profile") { ProfileScreen(navController) }
+        composable("library") { LibraryScreen(navController) }
         composable(
             "book/{bookId}",
             arguments = listOf(navArgument("bookId") { type = NavType.StringType })

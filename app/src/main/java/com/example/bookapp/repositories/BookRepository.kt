@@ -187,6 +187,12 @@ class BookRepository {
             .isEmpty()
     }
 
+    suspend fun getAllBooks(): List<Book> {
+        return SupabaseClient.client.from("books")
+            .select()
+            .decodeList<Book>()
+    }
+
     fun clearCache() {
         cache.clear()
     }
