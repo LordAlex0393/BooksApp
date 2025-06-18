@@ -153,7 +153,7 @@ private fun BookGridItem(book: Book, navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp)
+            .height(325.dp)
             .clickable { navController.navigate("book/${book.id}") },
         shape = RoundedCornerShape(8.dp),
     ) {
@@ -166,7 +166,7 @@ private fun BookGridItem(book: Book, navController: NavController) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
-                        .height(220.dp)
+                        .height(215.dp)
                         .clip(RoundedCornerShape(4.dp))
                 ) {
                     val painter = rememberAsyncImagePainter(model = book.cover_url)

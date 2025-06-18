@@ -24,7 +24,7 @@ import com.example.bookapp.repositories.AuthRepository
 import com.example.bookapp.viewModel.LoginViewModel
 import com.example.bookapp.viewModelFactory.LoginViewModelFactory
 
-private const val BUTTON_MAX_WIDTH = 0.5f
+private const val BUTTON_MAX_WIDTH = 0.6f
 private val BUTTON_MAX_HEIGHT = 48.dp
 private val PADDING = 52.dp
 
@@ -103,6 +103,8 @@ fun LoginScreen(
 
         TextButton(
             onClick = { navController.navigate("signup") },
+            modifier = Modifier.fillMaxWidth()
+                .align(Alignment.CenterHorizontally)
         ) {
             Text("Нет аккаунта? Зарегистрируйтесь")
         }
