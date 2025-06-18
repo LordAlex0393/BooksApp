@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,7 +54,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookapp.models.Book
-import com.example.bookapp.models.BookList
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import com.example.bookapp.viewModel.LibraryViewModel
@@ -66,7 +66,18 @@ fun LibraryScreen(
 ) {
     val books by viewModel.books.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    var visibleBooksCount by remember { mutableStateOf(8) }
+    var visibleBooksCount by remember { mutableStateOf(26) }
+
+
+    val userLists by viewModel.userLists.collectAsState()
+    val currentUser = UserSession.currentUser.value
+
+    // Предзагрузка списков при открытии экрана
+    LaunchedEffect(currentUser?.id) {
+        currentUser?.id?.let { userId ->
+            viewModel.loadUserLists(userId)
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadBooks()
@@ -274,21 +285,16 @@ private fun AddToListDialog(
     onDismiss: () -> Unit,
     viewModel: LibraryViewModel = viewModel(factory = LibraryViewModelFactory(BookRepository()))
 ) {
-    val user = UserSession.currentUser.value
-    var userLists by remember { mutableStateOf<List<BookList>>(emptyList()) }
+    val userLists by viewModel.userLists.collectAsState()
     var checkedStates by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
-        if (user != null) {
-            val lists = BookRepository().getUserBookLists(user.id)
-            userLists = lists.filter { it.creator_id == user.id }
-
-            // Check which lists already contain this book
-            val checkedMap = userLists.associate { list ->
-                list.id to list.books.any { it.id == book.id }
-            }
-            checkedStates = checkedMap
+    LaunchedEffect(book.id, userLists) {
+        // Проверяем, в каких списках уже есть книга
+        checkedStates = userLists.associate { list ->
+            list.id to list.books.any { it.id == book.id }
         }
+        isLoading = false
     }
 
     AlertDialog(
@@ -301,24 +307,37 @@ private fun AddToListDialog(
             )
         },
         text = {
-            Column {
-                userLists.forEach { list ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        Checkbox(
-                            checked = checkedStates[list.id] ?: false,
-                            onCheckedChange = { isChecked ->
-                                checkedStates = checkedStates.toMutableMap().apply {
-                                    put(list.id, isChecked)
-                                }
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                Column {
+                    if (userLists.isEmpty()) {
+                        Text("У вас нет списков")
+                    } else {
+                        userLists.forEach { list ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Checkbox(
+                                    checked = checkedStates[list.id] ?: false,
+                                    onCheckedChange = { isChecked ->
+                                        checkedStates = checkedStates.toMutableMap().apply {
+                                            put(list.id, isChecked)
+                                        }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = list.name)
                             }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = list.name)
+                        }
                     }
                 }
             }
@@ -326,26 +345,20 @@ private fun AddToListDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    // Apply changes
+                    // Применяем изменения
                     checkedStates.forEach { (listId, isChecked) ->
                         val listContainsBook = userLists
                             .find { it.id == listId }
                             ?.books?.any { it.id == book.id } ?: false
 
                         when {
-                            isChecked && !listContainsBook -> {
-                                // Add to list
-                                viewModel.addBookToList(listId, book.id)
-                            }
-
-                            !isChecked && listContainsBook -> {
-                                // Remove from list
-                                viewModel.removeBookFromList(listId, book.id)
-                            }
+                            isChecked && !listContainsBook -> viewModel.addBookToList(listId, book.id)
+                            !isChecked && listContainsBook -> viewModel.removeBookFromList(listId, book.id)
                         }
                     }
                     onDismiss()
-                }
+                },
+                enabled = !isLoading
             ) {
                 Text("Сохранить")
             }

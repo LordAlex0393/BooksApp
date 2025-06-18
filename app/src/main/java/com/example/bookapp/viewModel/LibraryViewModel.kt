@@ -3,6 +3,7 @@ package com.example.bookapp.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bookapp.models.Book
+import com.example.bookapp.models.BookList
 import com.example.bookapp.repositories.BookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,9 @@ class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _userLists = MutableStateFlow<List<BookList>>(emptyList())
+    val userLists: StateFlow<List<BookList>> = _userLists.asStateFlow()
 
     fun loadBooks() {
         viewModelScope.launch {
@@ -45,6 +49,17 @@ class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
                 repository.removeBookFromList(listId, bookId)
             } catch (e: Exception) {
                 // Handle error
+            }
+        }
+    }
+
+    fun loadUserLists(userId: String) {
+        viewModelScope.launch {
+            try {
+                _userLists.value = repository.getUserBookLists(userId)
+                    .filter { it.creator_id == userId } // Фильтруем только списки пользователя
+            } catch (e: Exception) {
+                // Обработка ошибок
             }
         }
     }

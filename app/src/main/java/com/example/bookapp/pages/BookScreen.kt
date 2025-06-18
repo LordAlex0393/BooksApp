@@ -88,7 +88,7 @@ fun BookScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(onClick = { navController.navigate("profile") }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
                 }
                 Spacer(modifier = Modifier.width(16.dp))
