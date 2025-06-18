@@ -153,7 +153,7 @@ fun ProfileScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Кнопка назад
-            IconButton(onClick = { navController.popBackStack() }) {
+            IconButton(onClick = { navController.navigate("library") }) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Назад"
