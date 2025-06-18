@@ -20,16 +20,20 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,12 +46,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookapp.models.Book
+import com.example.bookapp.models.BookList
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import com.example.bookapp.viewModel.LibraryViewModel
@@ -125,7 +131,8 @@ private fun LibraryHeader(navController: NavController) {
                     Icon(
                         Icons.Default.Person,
                         contentDescription = "Профиль",
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier
+                            .size(36.dp)
                             .padding(horizontal = 10.dp), // Slightly larger icon for aesthetics
                         tint = MaterialTheme.colorScheme.primary // Give it a primary color tint
                     )
@@ -141,94 +148,212 @@ private fun LibraryHeader(navController: NavController) {
 
 @Composable
 private fun BookGridItem(book: Book, navController: NavController) {
+    var showAddToListDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp) // Фиксированная высота для всех карточек
+            .height(320.dp)
             .clickable { navController.navigate("book/${book.id}") },
         shape = RoundedCornerShape(8.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Обложка книги (фиксированный размер)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(220.dp)
-                    .clip(RoundedCornerShape(4.dp))
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val painter = rememberAsyncImagePainter(model = book.cover_url)
-                Image(
-                    painter = painter,
-                    contentDescription = "Обложка книги",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+                // Обложка книги (фиксированный размер)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .height(220.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                ) {
+                    val painter = rememberAsyncImagePainter(model = book.cover_url)
+                    Image(
+                        painter = painter,
+                        contentDescription = "Обложка книги",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Название книги (фиксированное количество строк)
-            // Use a Box with a predefined height to ensure two lines
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height((MaterialTheme.typography.bodyMedium.lineHeight.value * 1).dp) // Calculate height for two lines
-            ) {
+                // Название книги (фиксированное количество строк)
+                // Use a Box with a predefined height to ensure two lines
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height((MaterialTheme.typography.bodyMedium.lineHeight.value * 1).dp) // Calculate height for two lines
+                ) {
+                    Text(
+                        text = book.title ?: "Без названия",
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Автор (1 строка)
                 Text(
-                    text = book.title ?: "Без названия",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = book.author ?: "Автор неизвестен",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()
                 )
-            }
 
-            Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(1.dp))
 
-            // Автор (1 строка)
-            Text(
-                text = book.author ?: "Автор неизвестен",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(1.dp))
-
-            // Жанр (1 строка)
-            Text(
-                text = book.genre ?: "Жанр не указан",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            // Рейтинг
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Star,
-                    contentDescription = "Рейтинг",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
+                // Жанр (1 строка)
                 Text(
-                    text = "%.1f".format(book.avg_rating ?: 0.0),
-                    style = MaterialTheme.typography.labelMedium
+                    text = book.genre ?: "Жанр не указан",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Rating
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = "Рейтинг",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "%.1f".format(book.avg_rating ?: 0.0),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+
+                    }
+
+                    // Add to list button
+                    IconButton(
+                        onClick = { showAddToListDialog = true },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Добавить в список",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         }
     }
+
+    if (showAddToListDialog) {
+        AddToListDialog(
+            book = book,
+            onDismiss = { showAddToListDialog = false })
+    }
+}
+
+@Composable
+private fun AddToListDialog(
+    book: Book,
+    onDismiss: () -> Unit,
+    viewModel: LibraryViewModel = viewModel(factory = LibraryViewModelFactory(BookRepository()))
+) {
+    val user = UserSession.currentUser.value
+    var userLists by remember { mutableStateOf<List<BookList>>(emptyList()) }
+    var checkedStates by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
+
+    LaunchedEffect(Unit) {
+        if (user != null) {
+            val lists = BookRepository().getUserBookLists(user.id)
+            userLists = lists.filter { it.creator_id == user.id }
+
+            // Check which lists already contain this book
+            val checkedMap = userLists.associate { list ->
+                list.id to list.books.any { it.id == book.id }
+            }
+            checkedStates = checkedMap
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Выберите список",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Column {
+                userLists.forEach { list ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Checkbox(
+                            checked = checkedStates[list.id] ?: false,
+                            onCheckedChange = { isChecked ->
+                                checkedStates = checkedStates.toMutableMap().apply {
+                                    put(list.id, isChecked)
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = list.name)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    // Apply changes
+                    checkedStates.forEach { (listId, isChecked) ->
+                        val listContainsBook = userLists
+                            .find { it.id == listId }
+                            ?.books?.any { it.id == book.id } ?: false
+
+                        when {
+                            isChecked && !listContainsBook -> {
+                                // Add to list
+                                viewModel.addBookToList(listId, book.id)
+                            }
+
+                            !isChecked && listContainsBook -> {
+                                // Remove from list
+                                viewModel.removeBookFromList(listId, book.id)
+                            }
+                        }
+                    }
+                    onDismiss()
+                }
+            ) {
+                Text("Сохранить")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Отмена")
+            }
+        }
+    )
 }

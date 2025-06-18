@@ -28,4 +28,24 @@ class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
             }
         }
     }
+
+    fun addBookToList(listId: String, bookId: String) {
+        viewModelScope.launch {
+            try {
+                repository.addBookToList(listId, bookId)
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
+
+    fun removeBookFromList(listId: String, bookId: String) {
+        viewModelScope.launch {
+            try {
+                repository.removeBookFromList(listId, bookId)
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
 }

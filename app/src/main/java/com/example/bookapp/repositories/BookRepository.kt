@@ -193,6 +193,23 @@ class BookRepository {
             .decodeList<Book>()
     }
 
+    suspend fun addBookToList(listId: String, bookId: String) {
+        try {
+            SupabaseClient.client.from("book_list_items")
+                .insert(
+                    mapOf(
+                        "book_list_id" to listId,
+                        "book_id" to bookId
+                    )
+                )
+            // Clear cache to ensure fresh data on next load
+            cache.clear()
+        } catch (e: Exception) {
+            Log.e("BookRepository", "Error adding book to list", e)
+            throw e
+        }
+    }
+
     fun clearCache() {
         cache.clear()
     }
