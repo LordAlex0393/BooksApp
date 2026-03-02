@@ -11,8 +11,6 @@ import kotlinx.datetime.Clock.System
 class BookRepository {
     private val cache = mutableMapOf<String, List<BookList>>()
 
-    private val listsCache = mutableMapOf<String, List<BookList>>()
-
     suspend fun getUserBookLists(userId: String): List<BookList> {
         // Проверяем кэш перед запросом к серверу
         return cache[userId] ?: loadAndCacheUserBookLists(userId)
@@ -86,8 +84,6 @@ class BookRepository {
             .decodeSingle<Book>()
     }
 
-
-    // BookRepository.kt
     suspend fun saveReview(review: Review) {
         try {
             SupabaseClient.client.from("reviews")

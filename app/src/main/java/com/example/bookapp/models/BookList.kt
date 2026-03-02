@@ -9,6 +9,4 @@ data class BookList(
     val creator_id: String,
     val created_at: String,
     val books: List<Book> = emptyList() // Поле не участвует в сериализации
-) {
-    fun toDBModel() = BookList(id, name, creator_id, created_at)
-}
+)

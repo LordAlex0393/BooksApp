@@ -10,7 +10,4 @@ data class User(
     val password_hash: String = "", // Только для входа/регистрации
     val bookLists: List<BookList> = emptyList(),
     val lastAuthTime: Long = 0 // Для сессии
-) {
-    // Для запросов, где не нужны дополнительные данные
-    fun toDBModel() = User(id, username, email, password_hash)
-}
+)

@@ -50,13 +50,6 @@ class ProfileViewModel(
         }
     }
 
-    // Обновление отдельного списка
-    fun updateBookList(updatedList: BookList) {
-        _bookLists.value = _bookLists.value.map { list ->
-            if (list.id == updatedList.id) updatedList else list
-        }
-    }
-
     // Сброс ошибки
     fun clearError() {
         _error.value = null
