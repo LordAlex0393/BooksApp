@@ -106,7 +106,7 @@ fun BookScreen(
                     .padding(top = 2.dp)
             )
 
-            // Название и автор
+            // Название
             Text(
                 text = book.title,
                 style = MaterialTheme.typography.headlineSmall,
@@ -147,7 +147,7 @@ fun BookScreen(
                 modifier = Modifier.padding(top = 8.dp)
             ) {
                 Text(
-                    text = book.genre ?: "Жанр не указан",
+                    text = book.genres.joinToString { it.name } ?: "Жанр не указан",
                     style = MaterialTheme.typography.bodyMedium
                 )
 

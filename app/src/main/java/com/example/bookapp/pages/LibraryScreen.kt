@@ -143,7 +143,7 @@ private fun LibraryHeader(navController: NavController) {
                         Icons.Default.Person,
                         contentDescription = "Профиль",
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(56.dp)
                             .padding(horizontal = 10.dp), // Slightly larger icon for aesthetics
                         tint = MaterialTheme.colorScheme.primary // Give it a primary color tint
                     )
@@ -223,7 +223,7 @@ private fun BookGridItem(book: Book, navController: NavController) {
 
                 // Жанр (1 строка)
                 Text(
-                    text = book.genre ?: "Жанр не указан",
+                    text = book.genres.take(2).joinToString { it.name } ?: "Жанр не указан",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     maxLines = 1,

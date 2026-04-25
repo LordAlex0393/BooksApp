@@ -289,7 +289,7 @@ fun BookListItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = book.genre?.toString() ?: "Без жанра",
+                    text = book.genres.joinToString { it.name } ?: "Без жанра",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                     maxLines = 1,

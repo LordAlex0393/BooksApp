@@ -22,12 +22,15 @@ android {
 
     buildTypes {
         getByName("release") {
+            buildConfigField("String", "SUPABASE_URL", "\"your_supabase_url_here1\"")
+            buildConfigField("String", "SUPABASE_KEY", "\"your_supabase_key_here1\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+
         getByName("debug") {
             buildConfigField("String", "SUPABASE_URL", "\"your_supabase_url_here1\"")
             buildConfigField("String", "SUPABASE_KEY", "\"your_supabase_key_here1\"")
