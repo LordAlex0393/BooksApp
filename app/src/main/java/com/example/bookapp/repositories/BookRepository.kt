@@ -4,7 +4,6 @@ import android.util.Log
 import com.example.bookapp.models.Book
 import com.example.bookapp.models.BookList
 import com.example.bookapp.models.Genre
-import com.example.bookapp.models.GenreResponse
 import com.example.bookapp.models.Review
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
@@ -17,7 +16,6 @@ class BookRepository {
     private val cache = mutableMapOf<String, List<BookList>>()
 
     suspend fun getUserBookLists(userId: String): List<BookList> {
-        // Проверяем кэш перед запросом к серверу
         return cache[userId] ?: loadAndCacheUserBookLists(userId)
     }
 
@@ -45,79 +43,96 @@ class BookRepository {
             )
         }
 
-        // Сохраняем в кэш
         cache[userId] = bookLists
         return bookLists
     }
 
     private suspend fun getBooksByListId(bookListId: String): List<Book> = withContext(Dispatchers.IO) {
-        // Сначала загружаем книги из списка
         val books = SupabaseClient.client
             .from("books")
             .select(Columns.raw("""
-        id, 
-        title, 
-        author, 
-        description, 
-        cover_url, 
-        year, 
-        avg_rating,
-        book_list_items!inner(book_list_id)
-    """)) {
+                id, 
+                title, 
+                author, 
+                description, 
+                cover_url, 
+                year, 
+                avg_rating,
+                book_list_items!inner(book_list_id)
+            """)) {
                 filter { eq("book_list_items.book_list_id", bookListId) }
             }
             .decodeList<Book>()
 
-        // Затем загружаем жанры для каждой книги
-        books.map { book ->
-            val genresResponse = SupabaseClient.client
-                .from("book_genres")
-                .select(columns = Columns.list("genre_id, genres!inner(id, name)")) {
-                    filter { eq("book_id", book.id) }
-                }
+        books
+    }
 
-            val genres = genresResponse.decodeList<GenreResponse>()
-                .map { Genre(it.genre_id, it.genres.name) }
-
-            book.copy(genres = genres)
+    suspend fun getAllBooks(): List<Book> = withContext(Dispatchers.IO) {
+        try {
+            SupabaseClient.client
+                .from("books")
+                .select(Columns.raw("""
+                    id,
+                    title,
+                    author,
+                    cover_url,
+                    description,
+                    year,
+                    avg_rating,
+                    book_genres(
+                        genres(
+                            id,
+                            name
+                        )
+                    )
+                """))
+                .decodeList<BookWithGenres>()
+                .map { it.toBook() }
+        } catch (e: Exception) {
+            Log.e("BookRepo", "Error loading books", e)
+            emptyList()
         }
     }
 
     suspend fun getBookById(bookId: String): Book = withContext(Dispatchers.IO) {
-        // 1. Загружаем книгу
         val book = SupabaseClient.client.from("books")
             .select(Columns.raw("""
-        id,
-        title,
-        author,
-        description,
-        cover_url,
-        year,
-        avg_rating,
-        reviews:reviews!book_id(
-            id,
-            book_id,
-            user_id,
-            rating,
-            text,
-            created_at,
-            user:users!user_id(username)
-        )
-        """
-            )) {
+                id,
+                title,
+                author,
+                description,
+                cover_url,
+                year,
+                avg_rating,
+                reviews:reviews!book_id(
+                    id,
+                    book_id,
+                    user_id,
+                    rating,
+                    text,
+                    created_at,
+                    user:users!user_id(username)
+                )
+            """)) {
                 filter { eq("id", bookId) }
             }
             .decodeSingle<Book>()
 
-        // 2. Загружаем жанры для этой книги
-        val genresResponse = SupabaseClient.client
-            .from("book_genres")
-            .select(columns = Columns.list("genre_id, genres!inner(id, name)")) {
-                filter { eq("book_id", bookId) }
-            }
-
-        val genres = genresResponse.decodeList<GenreResponse>()
-            .map { Genre(it.genre_id, it.genres.name) }
+        // Загружаем жанры отдельно через простой select с filter
+        val genres = try {
+            SupabaseClient.client
+                .from("book_genres")
+                .select {
+                    filter {
+                        eq("book_id", bookId)
+                    }
+                }
+                .decodeList<GenreResponse>()
+                .mapNotNull { it.genres }
+        } catch (e: Exception) {
+            Log.e("BookRepo", "Error loading genres for book $bookId", e)
+            emptyList()
+        }
 
         book.copy(genres = genres)
     }
@@ -125,9 +140,9 @@ class BookRepository {
     suspend fun saveReview(review: Review) {
         try {
             SupabaseClient.client.from("reviews")
-                .upsert(review) {  // Используем upsert вместо insert
-                    onConflict = "user_id,book_id"  // Указываем колонки для проверки конфликта
-                    ignoreDuplicates = false  // Обновляем при конфликте
+                .upsert(review) {
+                    onConflict = "user_id,book_id"
+                    ignoreDuplicates = false
                 }
             Log.d("Review", "Review upserted successfully")
         } catch (e: Exception) {
@@ -155,15 +170,28 @@ class BookRepository {
                     eq("book_id", bookId)
                 }
             }
-        // Очищаем кэш, чтобы при следующем запросе получить актуальные данные
         cache.clear()
     }
 
-
+    suspend fun addBookToList(listId: String, bookId: String) {
+        try {
+            SupabaseClient.client.from("book_list_items")
+                .insert(
+                    mapOf(
+                        "book_list_id" to listId,
+                        "book_id" to bookId,
+                        "added_at" to System.now().toString()
+                    )
+                )
+            cache.clear()
+        } catch (e: Exception) {
+            Log.e("BookRepository", "Error adding book to list", e)
+            throw e
+        }
+    }
 
     suspend fun createBookList(userId: String, listName: String): BookList {
         try {
-            // 1. Создаем список
             val newList = SupabaseClient.client.from("book_lists")
                 .insert(
                     mapOf(
@@ -176,7 +204,6 @@ class BookRepository {
                 }
                 .decodeSingle<BookList>()
 
-            // 2. Создаем связь для доступа
             SupabaseClient.client.from("user_book_lists")
                 .insert(
                     mapOf(
@@ -186,7 +213,7 @@ class BookRepository {
                 )
 
             cache.clear()
-            return newList.copy(books = emptyList()) // Возвращаем список без книг
+            return newList.copy(books = emptyList())
 
         } catch (e: Exception) {
             Log.e("BookRepository", "Error creating list", e)
@@ -196,14 +223,10 @@ class BookRepository {
 
     suspend fun deleteBookList(listId: String) {
         try {
-
-            // Удаляем сам список
             SupabaseClient.client.from("book_lists")
                 .delete {
                     filter { eq("id", listId) }
                 }
-
-            // Очищаем кэш
             cache.clear()
         } catch (e: Exception) {
             Log.e("BookRepository", "Error deleting list", e)
@@ -223,32 +246,14 @@ class BookRepository {
             .isEmpty()
     }
 
-    // BookRepository.kt
-    suspend fun getAllBooks(): List<Book> = withContext(Dispatchers.IO) {
-        SupabaseClient.client
-            .from("books")
-            .select(Columns.raw("""
-            id,
-            title,
-            author,
-            cover_url,
-            description,
-            year,
-            avg_rating,
-            book_genres(
-                genres(
-                    id,
-                    name
-                )
-            )
-        """,))
-            .decodeList<BookWithGenres>()
-            .map { it.toBook() }
+    fun clearCache() {
+        cache.clear()
     }
 
-    // Временная модель (можно удалить после настройки)
-    @kotlinx.serialization.Serializable
-    data class BookWithGenres(
+    // ======================== МОДЕЛИ ========================
+
+    @Serializable
+    private data class BookWithGenres(
         val id: String,
         val title: String,
         val author: String,
@@ -271,28 +276,12 @@ class BookRepository {
     }
 
     @Serializable
-    data class BookGenreRelation(
+    private data class BookGenreRelation(
         val genres: Genre? = null
     )
 
-    suspend fun addBookToList(listId: String, bookId: String) {
-        try {
-            SupabaseClient.client.from("book_list_items")
-                .insert(
-                    mapOf(
-                        "book_list_id" to listId,
-                        "book_id" to bookId
-                    )
-                )
-            // Clear cache to ensure fresh data on next load
-            cache.clear()
-        } catch (e: Exception) {
-            Log.e("BookRepository", "Error adding book to list", e)
-            throw e
-        }
-    }
-
-    fun clearCache() {
-        cache.clear()
-    }
+    @Serializable
+    private data class GenreResponse(
+        val genres: Genre?
+    )
 }
