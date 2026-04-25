@@ -48,23 +48,28 @@ class BookRepository {
     }
 
     private suspend fun getBooksByListId(bookListId: String): List<Book> = withContext(Dispatchers.IO) {
-        val books = SupabaseClient.client
+        SupabaseClient.client
             .from("books")
             .select(Columns.raw("""
-                id, 
-                title, 
-                author, 
-                description, 
-                cover_url, 
-                year, 
-                avg_rating,
-                book_list_items!inner(book_list_id)
-            """)) {
+            id,
+            title,
+            author,
+            description,
+            cover_url,
+            year,
+            avg_rating,
+            book_genres(
+                genres(
+                    id,
+                    name
+                )
+            ),
+            book_list_items!inner(book_list_id)
+        """)) {
                 filter { eq("book_list_items.book_list_id", bookListId) }
             }
-            .decodeList<Book>()
-
-        books
+            .decodeList<BookWithGenres>()
+            .map { it.toBook() }
     }
 
     suspend fun getAllBooks(): List<Book> = withContext(Dispatchers.IO) {
@@ -95,46 +100,36 @@ class BookRepository {
     }
 
     suspend fun getBookById(bookId: String): Book = withContext(Dispatchers.IO) {
-        val book = SupabaseClient.client.from("books")
+        SupabaseClient.client
+            .from("books")
             .select(Columns.raw("""
-                id,
-                title,
-                author,
-                description,
-                cover_url,
-                year,
-                avg_rating,
-                reviews:reviews!book_id(
+            id,
+            title,
+            author,
+            description,
+            cover_url,
+            year,
+            avg_rating,
+            book_genres(
+                genres(
                     id,
-                    book_id,
-                    user_id,
-                    rating,
-                    text,
-                    created_at,
-                    user:users!user_id(username)
+                    name
                 )
-            """)) {
+            ),
+            reviews:reviews!book_id(
+                id,
+                book_id,
+                user_id,
+                rating,
+                text,
+                created_at,
+                user:users!user_id(username)
+            )
+        """)) {
                 filter { eq("id", bookId) }
             }
-            .decodeSingle<Book>()
-
-        // Загружаем жанры отдельно через простой select с filter
-        val genres = try {
-            SupabaseClient.client
-                .from("book_genres")
-                .select {
-                    filter {
-                        eq("book_id", bookId)
-                    }
-                }
-                .decodeList<GenreResponse>()
-                .mapNotNull { it.genres }
-        } catch (e: Exception) {
-            Log.e("BookRepo", "Error loading genres for book $bookId", e)
-            emptyList()
-        }
-
-        book.copy(genres = genres)
+            .decodeSingle<BookWithGenresAndReviews>()
+            .toBook()
     }
 
     suspend fun saveReview(review: Review) {
@@ -275,6 +270,30 @@ class BookRepository {
         )
     }
 
+    @Serializable
+    private data class BookWithGenresAndReviews(
+        val id: String,
+        val title: String,
+        val author: String,
+        val cover_url: String,
+        val description: String,
+        val year: Int,
+        val avg_rating: Double,
+        val book_genres: List<BookGenreRelation> = emptyList(),
+        val reviews: List<Review> = emptyList()
+    ) {
+        fun toBook() = Book(
+            id = id,
+            title = title,
+            author = author,
+            genres = book_genres.mapNotNull { it.genres },
+            cover_url = cover_url,
+            description = description,
+            year = year,
+            avg_rating = avg_rating,
+            reviews = reviews
+        )
+    }
     @Serializable
     private data class BookGenreRelation(
         val genres: Genre? = null

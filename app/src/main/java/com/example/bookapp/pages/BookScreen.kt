@@ -147,7 +147,7 @@ fun BookScreen(
                 modifier = Modifier.padding(top = 8.dp)
             ) {
                 Text(
-                    text = book.genres.joinToString { it.name } ?: "Жанр не указан",
+                    book.genres.take(2).joinToString { it.name } ?: "Жанр не указан",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
