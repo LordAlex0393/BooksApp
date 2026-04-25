@@ -158,7 +158,7 @@ private fun LibraryHeader(navController: NavController) {
 }
 
 @Composable
-private fun BookGridItem(book: Book, navController: NavController) {
+fun BookGridItem(book: Book, navController: NavController) {
     var showAddToListDialog by remember { mutableStateOf(false) }
 
     Card(

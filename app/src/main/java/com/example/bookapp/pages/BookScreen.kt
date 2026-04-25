@@ -2,8 +2,10 @@ package com.example.bookapp.pages
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -147,7 +153,7 @@ fun BookScreen(
                 modifier = Modifier.padding(top = 8.dp)
             ) {
                 Text(
-                    book.genres.take(2).joinToString { it.name } ?: "Жанр не указан",
+                    book.genres.take(5).joinToString { it.name } ?: "Жанр не указан",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
@@ -191,6 +197,37 @@ fun BookScreen(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
+            // Похожие книги
+            val similarBooks by viewModel.similarBooks.collectAsState()
+
+            LaunchedEffect(bookId) {
+                viewModel.loadSimilarBooks(bookId)
+            }
+
+            if (similarBooks.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Похожие книги",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.height(350.dp)
+                ) {
+                    items(similarBooks) { book ->
+                        BookGridItem(book = book, navController = navController)
+                    }
+                }
+            }
 
             if (showReviewDialog) {
                 AlertDialog(

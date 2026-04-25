@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.bookapp.models.Book
 import com.example.bookapp.models.Review
 import com.example.bookapp.repositories.BookRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock.System
 import java.util.UUID
@@ -17,6 +20,16 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
+
+    private val _similarBooks = MutableStateFlow<List<Book>>(emptyList())
+    val similarBooks: StateFlow<List<Book>> = _similarBooks.asStateFlow()
+
+    fun loadSimilarBooks(bookId: String) {
+        viewModelScope.launch {
+            val books = repository.getSimilarBooks(bookId)
+            _similarBooks.value = books
+        }
+    }
 
     fun loadBook(bookId: String) {
         viewModelScope.launch {

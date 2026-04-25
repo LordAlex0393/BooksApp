@@ -245,6 +245,67 @@ class BookRepository {
         cache.clear()
     }
 
+    suspend fun getSimilarBooks(bookId: String, limit: Int = 4): List<Book> = withContext(Dispatchers.IO) {
+        try {
+            val similarBooksData = SupabaseClient.client
+                .from("book_similarity")
+                .select {
+                    filter { eq("book1_id", bookId) }
+                }
+                .decodeList<SimilarityResponse>()
+                .sortedByDescending { it.score }
+                .take(limit)
+
+            if (similarBooksData.isEmpty()) {
+                Log.d("BookRepo", "No similar books found for bookId: $bookId")
+                return@withContext emptyList()
+            }
+
+            Log.d("BookRepo", "Found ${similarBooksData.size} similar books: ${similarBooksData.joinToString { it.book2_id }}")
+
+            val similarIds = similarBooksData.map { it.book2_id }
+
+            similarIds.mapNotNull { id ->
+                try {
+                    SupabaseClient.client
+                        .from("books")
+                        .select(Columns.raw("""
+                        id,
+                        title,
+                        author,
+                        cover_url,
+                        description,
+                        year,
+                        avg_rating,
+                        book_genres(
+                            genres(
+                                id,
+                                name
+                            )
+                        )
+                    """)) {
+                            filter { eq("id", id) }
+                        }
+                        .decodeSingle<BookWithGenres>()
+                        .toBook()
+                        .also { Log.d("BookRepo", "Loaded similar book: ${it.title} (${it.id})") }
+                } catch (e: Exception) {
+                    Log.e("BookRepo", "Failed to load book $id", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("BookRepo", "Error loading similar books", e)
+            emptyList()
+        }
+    }
+
+    @Serializable
+    private data class SimilarityResponse(
+        val book2_id: String,
+        val score: Double
+    )
+
     // ======================== МОДЕЛИ ========================
 
     @Serializable
