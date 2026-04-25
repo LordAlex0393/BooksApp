@@ -8,15 +8,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.bookapp.models.Book
+import com.example.bookapp.models.Genre
 import com.example.bookapp.pages.AllReviewsScreen
 import com.example.bookapp.pages.BookListScreen
 import com.example.bookapp.pages.BookScreen
 import com.example.bookapp.pages.LibraryScreen
+import com.example.bookapp.repositories.SupabaseClient
+import io.github.jan.supabase.postgrest.from
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +60,15 @@ fun App() {
                 navController = navController,
                 listId = backStackEntry.arguments?.getString("listId")!!
             )
+        }
+    }
+    LaunchedEffect(Unit) {
+        // Делаем "лёгкий" запрос, чтобы прогреть соединение
+        try {
+            SupabaseClient.client.from("genres").select().decodeList<Genre>()
+            SupabaseClient.client.from("books").select().decodeList<Book>()
+        } catch (e: Exception) {
+            // Игнорируем ошибки прогрева
         }
     }
 }

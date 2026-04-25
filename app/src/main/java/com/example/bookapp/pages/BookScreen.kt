@@ -14,11 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
@@ -69,9 +68,15 @@ fun BookScreen(
             if (index < rating) Color(0xFFFFD700) else Color.LightGray
         }
     }
+    // Похожие книги
+    val similarBooks by viewModel.similarBooks.collectAsState()
 
     LaunchedEffect(bookId) {
         viewModel.loadBook(bookId)
+    }
+
+    LaunchedEffect(bookId) {
+        viewModel.loadSimilarBooks(bookId)
     }
 
     if (isLoading) {
@@ -82,219 +87,240 @@ fun BookScreen(
     }
 
     book?.let { book ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                //.verticalScroll(rememberScrollState())
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Шапка с кнопкой назад
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+            item {
+                // Шапка с кнопкой назад
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
                 }
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "",
-                    style = MaterialTheme.typography.headlineSmall
-                )
             }
 
             // Обложка книги
-            BookCover(
-                book,
-                modifier = Modifier
-                    .size(350.dp)
-                    .padding(top = 2.dp)
-            )
+            item {
+                BookCover(
+                    book,
+                    modifier = Modifier
+                        .size(350.dp)
+                        .padding(top = 2.dp)
+                )
+            }
 
             // Название
-            Text(
-                text = book.title,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier
-                    .padding(top = 26.dp)
-                    .align(alignment = Alignment.CenterHorizontally)
-            )
+            item {
+                Text(
+                    text = book.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier
+                        .padding(top = 26.dp)
+                    //.align(alignment = Alignment.CenterHorizontally)
+                )
+            }
 
             // Автор
-            Text(
-                text = book.author,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                modifier = Modifier.padding(top = 4.dp)
-            ) // Добавим небольшой отступ
+            item {
+                Text(
+                    text = book.author,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(top = 4.dp)
+                ) // Добавим небольшой отступ
+            }
 
             // Рейтинг
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Рейтинг",
-                    tint = Color(0xFFFFD700),
-                    modifier = Modifier.size(24.dp)
-                )
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Рейтинг",
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(24.dp)
+                    )
 
-                Text(
-                    text = "%.1f".format(book.avg_rating ?: 0.0),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
+                    Text(
+                        text = "%.1f".format(book.avg_rating ?: 0.0),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
             }
 
             // Жанр и год
-            Row(
-                modifier = Modifier.padding(top = 8.dp)
-            ) {
-                Text(
-                    book.genres.take(5).joinToString { it.name } ?: "Жанр не указан",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            item {
+                Row(
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text(
+                        book.genres.take(5).joinToString { it.name } ?: "Жанр не указан",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
 
-                Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                Text(
-                    text = book.year?.toString() + " г." ?: "Год не указан",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                    Text(
+                        text = book.year?.toString() + " г." ?: "Год не указан",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
-
 
             // Описание
-            Text(
-                text = "О книге",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier
-                    .padding(top = 14.dp)
-                    .padding(horizontal = 18.dp)
-                    .align(Alignment.Start)
-            )
-
-            Text(
-                text = book.description ?: "Описание отсутствует",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .padding(horizontal = 18.dp)
-                    .padding(top = 12.dp)
-            )
-
-            ReviewsSection(book, navController)
-
-            // Кнопка для открытия диалога
-            Button(
-                onClick = { showReviewDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .padding(top = 12.dp)
-            ) {
-                Text("Оставить отзыв")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Похожие книги
-            val similarBooks by viewModel.similarBooks.collectAsState()
-
-            LaunchedEffect(bookId) {
-                viewModel.loadSimilarBooks(bookId)
-            }
-
-            if (similarBooks.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(24.dp))
+            item {
                 Text(
-                    text = "Похожие книги",
+                    text = "О книге",
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .padding(top = 14.dp)
                         .padding(horizontal = 18.dp)
+                        //.align(Alignment.Start)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.height(350.dp)
+                Text(
+                    text = book.description ?: "Описание отсутствует",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .padding(horizontal = 18.dp)
+                        .padding(top = 12.dp)
+                )
+            }
+
+            item {
+                ReviewsSection(book, navController)
+            }
+
+            // Кнопка для открытия диалога
+            item {
+                Button(
+                    onClick = { showReviewDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .padding(top = 12.dp)
                 ) {
-                    items(similarBooks) { book ->
-                        BookGridItem(book = book, navController = navController)
+                    Text("Оставить отзыв")
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+
+
+            if (similarBooks.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Похожие книги",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1360.dp),
+                    ) {
+                        items(similarBooks) { book ->
+                            BookGridItem(book = book, navController = navController)
+                        }
                     }
                 }
             }
 
             if (showReviewDialog) {
-                AlertDialog(
-                    onDismissRequest = { showReviewDialog = false },
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    title = { Text("Оцените книгу") },
-                    text = {
-                        Column {
-                            // Рейтинг звездами
-                            Row(
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Рейтинг:", modifier = Modifier.padding(end = 8.dp))
-                                (0..4).forEach { index ->
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = "Оценка ${index + 1}",
-                                        modifier = Modifier
-                                            .clickable { rating = index + 1 }
-                                            .padding(4.dp),
-                                        tint = starColors[index] // Используем цвет из списка
-                                    )
+                item {
+                    AlertDialog(
+                        onDismissRequest = { showReviewDialog = false },
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        title = { Text("Оцените книгу") },
+                        text = {
+                            Column {
+                                // Рейтинг звездами
+                                Row(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Рейтинг:", modifier = Modifier.padding(end = 8.dp))
+                                    (0..4).forEach { index ->
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = "Оценка ${index + 1}",
+                                            modifier = Modifier
+                                                .clickable { rating = index + 1 }
+                                                .padding(4.dp),
+                                            tint = starColors[index] // Используем цвет из списка
+                                        )
+                                    }
                                 }
-                            }
 
-                            // Поле для отзыва
-                            OutlinedTextField(
-                                value = reviewText,
-                                onValueChange = { reviewText = it },
-                                label = { Text("Ваш отзыв") },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                maxLines = 5
-                            )
+                                // Поле для отзыва
+                                OutlinedTextField(
+                                    value = reviewText,
+                                    onValueChange = { reviewText = it },
+                                    label = { Text("Ваш отзыв") },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                    maxLines = 5
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    UserSession.currentUser.value?.let { user ->
+                                        viewModel.saveReview(
+                                            bookId = book.id,
+                                            userId = user.id,
+                                            rating = rating,
+                                            text = reviewText.takeIf { it.isNotBlank() }
+                                        )
+                                    }
+                                    showReviewDialog = false
+                                },
+                                enabled = rating > 0
+                            ) {
+                                Text("Отправить")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showReviewDialog = false }) {
+                                Text("Отмена")
+                            }
                         }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                UserSession.currentUser.value?.let { user ->
-                                    viewModel.saveReview(
-                                        bookId = book.id,
-                                        userId = user.id,
-                                        rating = rating,
-                                        text = reviewText.takeIf { it.isNotBlank() }
-                                    )
-                                }
-                                showReviewDialog = false
-                            },
-                            enabled = rating > 0
-                        ) {
-                            Text("Отправить")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showReviewDialog = false }) {
-                            Text("Отмена")
-                        }
-                    }
-                )
+                    )
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun BookCover(book: Book, modifier: Modifier = Modifier) {
