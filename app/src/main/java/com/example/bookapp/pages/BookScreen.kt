@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,9 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
@@ -60,15 +56,14 @@ fun BookScreen(
 ) {
     val book: Book? by viewModel.book
     val isLoading: Boolean by viewModel.isLoading
-    var showReviewDialog by remember { mutableStateOf(false) } // Перенесено внутрь функции
+    var showReviewDialog by remember { mutableStateOf(false) }
     var rating by remember { mutableStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
-    val starColors = remember(rating) { // Добавляем rating как ключ для пересчёта
+    val starColors = remember(rating) {
         List(5) { index ->
             if (index < rating) Color(0xFFFFD700) else Color.LightGray
         }
     }
-    // Похожие книги
     val similarBooks by viewModel.similarBooks.collectAsState()
 
     LaunchedEffect(bookId) {
@@ -90,12 +85,11 @@ fun BookScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                //.verticalScroll(rememberScrollState())
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Все остальные item остаются без изменений
             item {
-                // Шапка с кнопкой назад
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -104,14 +98,10 @@ fun BookScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
                     }
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = "",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
+                    Text(text = "", style = MaterialTheme.typography.headlineSmall)
                 }
             }
 
-            // Обложка книги
             item {
                 BookCover(
                     book,
@@ -121,28 +111,23 @@ fun BookScreen(
                 )
             }
 
-            // Название
             item {
                 Text(
                     text = book.title,
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier
-                        .padding(top = 26.dp)
-                    //.align(alignment = Alignment.CenterHorizontally)
+                    modifier = Modifier.padding(top = 26.dp)
                 )
             }
 
-            // Автор
             item {
                 Text(
                     text = book.author,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     modifier = Modifier.padding(top = 4.dp)
-                ) // Добавим небольшой отступ
+                )
             }
 
-            // Рейтинг
             item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -154,7 +139,6 @@ fun BookScreen(
                         tint = Color(0xFFFFD700),
                         modifier = Modifier.size(24.dp)
                     )
-
                     Text(
                         text = "%.1f".format(book.avg_rating ?: 0.0),
                         style = MaterialTheme.typography.titleMedium,
@@ -163,18 +147,13 @@ fun BookScreen(
                 }
             }
 
-            // Жанр и год
             item {
-                Row(
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
+                Row(modifier = Modifier.padding(top = 8.dp)) {
                     Text(
                         book.genres.take(5).joinToString { it.name } ?: "Жанр не указан",
                         style = MaterialTheme.typography.bodyMedium
                     )
-
                     Spacer(modifier = Modifier.width(10.dp))
-
                     Text(
                         text = book.year?.toString() + " г." ?: "Год не указан",
                         style = MaterialTheme.typography.bodyMedium
@@ -182,7 +161,6 @@ fun BookScreen(
                 }
             }
 
-            // Описание
             item {
                 Text(
                     text = "О книге",
@@ -190,9 +168,7 @@ fun BookScreen(
                     modifier = Modifier
                         .padding(top = 14.dp)
                         .padding(horizontal = 18.dp)
-                        //.align(Alignment.Start)
                 )
-
                 Text(
                     text = book.description ?: "Описание отсутствует",
                     style = MaterialTheme.typography.bodyMedium,
@@ -206,7 +182,6 @@ fun BookScreen(
                 ReviewsSection(book, navController)
             }
 
-            // Кнопка для открытия диалога
             item {
                 Button(
                     onClick = { showReviewDialog = true },
@@ -222,8 +197,7 @@ fun BookScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-
-
+            // ✅ ИСПРАВЛЕННЫЙ БЛОК С ПОХОЖИМИ КНИГАМИ
             if (similarBooks.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
@@ -236,19 +210,8 @@ fun BookScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1360.dp),
-                    ) {
-                        items(similarBooks) { book ->
-                            BookGridItem(book = book, navController = navController)
-                        }
-                    }
+                    // 🔥 ВАЖНО: Используем обычный Column с Grid, а не LazyVerticalGrid
+                    SimilarBooksGrid(similarBooks = similarBooks, navController = navController)
                 }
             }
 
@@ -256,12 +219,10 @@ fun BookScreen(
                 item {
                     AlertDialog(
                         onDismissRequest = { showReviewDialog = false },
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         title = { Text("Оцените книгу") },
                         text = {
                             Column {
-                                // Рейтинг звездами
                                 Row(
                                     modifier = Modifier.padding(vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -274,12 +235,10 @@ fun BookScreen(
                                             modifier = Modifier
                                                 .clickable { rating = index + 1 }
                                                 .padding(4.dp),
-                                            tint = starColors[index] // Используем цвет из списка
+                                            tint = starColors[index]
                                         )
                                     }
                                 }
-
-                                // Поле для отзыва
                                 OutlinedTextField(
                                     value = reviewText,
                                     onValueChange = { reviewText = it },
@@ -320,6 +279,42 @@ fun BookScreen(
         }
     }
 }
+
+// ✅ НОВЫЙ КОМПОНЕНТ: Сетка похожих книг (не скроллится)
+@Composable
+fun SimilarBooksGrid(similarBooks: List<Book>, navController: NavController) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        // Разбиваем книги на строки по 2 в каждой
+        val rows = similarBooks.chunked(2)
+
+        rows.forEach { rowBooks ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                rowBooks.forEach { book ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                    ) {
+                        BookGridItem(book = book, navController = navController)
+                    }
+                }
+                // Если в строке только одна книга, добавляем пустой Box для сохранения布局
+                if (rowBooks.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
 
 
 @Composable
