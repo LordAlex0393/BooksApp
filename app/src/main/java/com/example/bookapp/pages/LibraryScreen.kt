@@ -1,8 +1,21 @@
 package com.example.bookapp.pages
 
 import android.util.Log
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,8 +110,18 @@ fun LibraryScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(books.take(visibleBooksCount)) { book ->
-                BookGridItem(book, navController)
+            items(
+                items = books.take(visibleBooksCount),
+                key = { it.id } // Важно для анимации списков
+            ) { book ->
+                // Оборачиваем карточку в AnimatedVisibility
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(animationSpec = tween(300)) +
+                            slideInVertically(initialOffsetY = { 50 })
+                ) {
+                    BookGridItem(book, navController)
+                }
             }
         }
 
@@ -134,18 +158,29 @@ fun LibraryScreen(
 @OptIn(ExperimentalMaterial3Api::class) // Add this annotation to LibraryScreen or the whole file
 @Composable
 private fun LibraryHeader(navController: NavController) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val iconScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.8f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "icon_scale"
+    )
     CenterAlignedTopAppBar(
         title = { Text("Библиотека", style = MaterialTheme.typography.headlineSmall) },
         actions = {
             UserSession.currentUser.value?.let { user ->
-                IconButton(onClick = { navController.navigate("profile") }) {
+                IconButton(
+                    onClick = { navController.navigate("profile") },
+                    interactionSource = interactionSource // Передаем источник
+                ) {
                     Icon(
                         Icons.Default.Person,
                         contentDescription = "Профиль",
                         modifier = Modifier
                             .size(56.dp)
-                            .padding(horizontal = 10.dp), // Slightly larger icon for aesthetics
-                        tint = MaterialTheme.colorScheme.primary // Give it a primary color tint
+                            .padding(horizontal = 10.dp)
+                            .scale(iconScale), // <--- Анимация
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -161,11 +196,23 @@ private fun LibraryHeader(navController: NavController) {
 fun BookGridItem(book: Book, navController: NavController) {
     var showAddToListDialog by remember { mutableStateOf(false) }
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val cardScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "card_press"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(325.dp)
-            .clickable { navController.navigate("book/${book.id}") },
+            .scale(cardScale) // <--- ВОТ ЭТА СТРОКА
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null // убираем стандартный ripple
+            ) { navController.navigate("book/${book.id}") },
         shape = RoundedCornerShape(8.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -257,9 +304,21 @@ fun BookGridItem(book: Book, navController: NavController) {
                     }
 
                     // Add to list button
+                    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                    val scale by infiniteTransition.animateFloat(
+                        initialValue = 1f,
+                        targetValue = 1.15f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(800, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "scale"
+                    )
                     IconButton(
                         onClick = { showAddToListDialog = true },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier
+                            .size(24.dp)
+                            .scale(scale)
                     ) {
                         Icon(
                             Icons.Default.Add,
@@ -320,17 +379,30 @@ private fun AddToListDialog(
                         Text("У вас нет списков")
                     } else {
                         userLists.forEach { list ->
+                            // 1. Получаем состояние галочки
+                            val isChecked = checkedStates[list.id] ?: false
+
+                            // 2. Создаем анимацию масштаба (1.05f - увеличение на 5%)
+                            val animatedScale by animateFloatAsState(
+                                targetValue = if (isChecked) 1.05f else 1f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                label = "checkbox_scale"
+                            )
+
+                            // 3. Применяем .scale() к самому Row
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp)
+                                    .scale(animatedScale) // <--- ВОТ ТУТ
                             ) {
                                 Checkbox(
-                                    checked = checkedStates[list.id] ?: false,
-                                    onCheckedChange = { isChecked ->
+                                    checked = isChecked, // Используем isChecked
+                                    onCheckedChange = { newCheckedState ->
+                                        // Меняем состояние галочки
                                         checkedStates = checkedStates.toMutableMap().apply {
-                                            put(list.id, isChecked)
+                                            put(list.id, newCheckedState)
                                         }
                                     }
                                 )

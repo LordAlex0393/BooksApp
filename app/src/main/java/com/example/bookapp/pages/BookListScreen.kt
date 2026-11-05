@@ -1,5 +1,6 @@
 package com.example.bookapp.pages
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -250,6 +251,7 @@ fun BookListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .animateContentSize() // <--- Плавное изменение размера
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
