@@ -7,13 +7,16 @@ import com.example.bookapp.models.Genre
 import com.example.bookapp.models.Review
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock.System
 import kotlinx.serialization.Serializable
+import kotlin.coroutines.cancellation.CancellationException
 
 class BookRepository {
     private val cache = mutableMapOf<String, List<BookList>>()
+    private val similarBooksCache = mutableMapOf<String, List<Book>>()
 
     suspend fun getUserBookLists(userId: String): List<BookList> {
         return cache[userId] ?: loadAndCacheUserBookLists(userId)
@@ -245,68 +248,96 @@ class BookRepository {
         cache.clear()
     }
 
-    suspend fun getSimilarBooks(bookId: String, limit: Int = 4): List<Book> = withContext(Dispatchers.IO) {
+    // Добавьте этот data class в файл (например, в конец файла BookRepository.kt)
+    @Serializable
+    private data class SimilarBooksParams(
+        val p_book_id: String,
+        val p_limit: Int
+    )
+
+    // Исправленная функция
+    suspend fun getSimilarBooks(bookId: String, limit: Int = 6): List<Book> = withContext(Dispatchers.IO) {
+        similarBooksCache[bookId]?.let {
+            if (it.isNotEmpty()) return@withContext it.take(limit)
+        }
+
         try {
-            val similarBooksData = SupabaseClient.client
+            val similarIds = mutableListOf<String>()
+
+            // Запрос для book1_id (bookId как первая книга) - используем конкретный тип
+            val response1 = SupabaseClient.client
                 .from("book_similarity")
-                .select {
+                .select(columns = Columns.raw("book2_id, score")) {
                     filter { eq("book1_id", bookId) }
+                    order(column = "score", Order.DESCENDING)
+                    limit(limit.toLong())
                 }
                 .decodeList<SimilarityResponse>()
-                .sortedByDescending { it.score }
-                .take(limit)
 
-            if (similarBooksData.isEmpty()) {
-                Log.d("BookRepo", "No similar books found for bookId: $bookId")
+            similarIds.addAll(response1.mapNotNull { it.book2_id })
+
+            // Если не нашли, ищем как book2_id
+            if (similarIds.isEmpty()) {
+                val response2 = SupabaseClient.client
+                    .from("book_similarity")
+                    .select(columns = Columns.raw("book1_id, score")) {
+                        filter { eq("book2_id", bookId) }
+                        order(column = "score", Order.DESCENDING)
+                        limit(limit.toLong())
+                    }
+                    .decodeList<SimilarityResponse>()
+
+                similarIds.addAll(response2.mapNotNull { it.book1_id })
+            }
+
+            if (similarIds.isEmpty()) {
                 return@withContext emptyList()
             }
 
-            Log.d("BookRepo", "Found ${similarBooksData.size} similar books: ${similarBooksData.joinToString { it.book2_id }}")
+            // Загружаем книги через getAllBooks()
+            val allBooks = getAllBooks()
+            val bookMap = allBooks.associateBy { it.id }
 
-            val similarIds = similarBooksData.map { it.book2_id }
+            val result = similarIds.mapNotNull { bookMap[it] }
 
-            similarIds.mapNotNull { id ->
-                try {
-                    SupabaseClient.client
-                        .from("books")
-                        .select(Columns.raw("""
-                        id,
-                        title,
-                        author,
-                        cover_url,
-                        description,
-                        year,
-                        avg_rating,
-                        book_genres(
-                            genres(
-                                id,
-                                name
-                            )
-                        )
-                    """)) {
-                            filter { eq("id", id) }
-                        }
-                        .decodeSingle<BookWithGenres>()
-                        .toBook()
-                        .also { Log.d("BookRepo", "Loaded similar book: ${it.title} (${it.id})") }
-                } catch (e: Exception) {
-                    Log.e("BookRepo", "Failed to load book $id", e)
-                    null
-                }
+            if (result.isNotEmpty()) {
+                similarBooksCache[bookId] = result
             }
+
+            result
+
+        } catch (e: CancellationException) {
+            Log.d("BookRepo", "Similar books loading was cancelled for $bookId")
+            emptyList()
         } catch (e: Exception) {
-            Log.e("BookRepo", "Error loading similar books", e)
+            Log.e("BookRepo", "Error loading similar books for $bookId", e)
             emptyList()
         }
     }
 
+    // Добавьте функцию очистки кэша
+    fun clearSimilarBooksCache() {
+        similarBooksCache.clear()
+    }
+
+    // Data class для ответа из таблицы book_similarity
     @Serializable
     private data class SimilarityResponse(
-        val book2_id: String,
+        val book2_id: String? = null,
+        val book1_id: String? = null,
         val score: Double
     )
 
-    // ======================== МОДЕЛИ ========================
+// Добавьте эти data классы:
+
+    @Serializable
+    private data class SimilarBookWithDetails(
+        val book2_id: String,
+        val score: Double,
+        val books: BookWithGenres? = null
+    ) {
+        fun toBook(): Book? = books?.toBook()
+    }
 
     @Serializable
     private data class BookWithGenres(
@@ -330,6 +361,37 @@ class BookRepository {
             avg_rating = avg_rating
         )
     }
+
+//    @Serializable
+//    private data class SimilarityResponse(
+//        val book2_id: String,
+//        val score: Double
+//    )
+
+    // ======================== МОДЕЛИ ========================
+
+//    @Serializable
+//    private data class BookWithGenres(
+//        val id: String,
+//        val title: String,
+//        val author: String,
+//        val cover_url: String,
+//        val description: String,
+//        val year: Int,
+//        val avg_rating: Double,
+//        val book_genres: List<BookGenreRelation> = emptyList()
+//    ) {
+//        fun toBook() = Book(
+//            id = id,
+//            title = title,
+//            author = author,
+//            genres = book_genres.mapNotNull { it.genres },
+//            cover_url = cover_url,
+//            description = description,
+//            year = year,
+//            avg_rating = avg_rating
+//        )
+//    }
 
     @Serializable
     private data class BookWithGenresAndReviews(
