@@ -1,8 +1,11 @@
+package com.example.bookapp.pages
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,17 +16,26 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,7 +45,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,27 +59,12 @@ import com.example.bookapp.models.Book
 import com.example.bookapp.models.BookList
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.ui.theme.LoadingIndicator
+import com.example.bookapp.ui.theme.PrimaryBook
+import com.example.bookapp.ui.theme.TextSecondary
 import com.example.bookapp.viewModel.ProfileViewModel
 import com.example.bookapp.viewModelFactory.ProfileViewModelFactory
 
-private const val LIST_TITLE_MAX_WIDTH = 0.8f
-private val PADDING = 24.dp
-
-private val BOOKLIST_TITLE_PADDING = 8.dp
-private val BOOKLIST_SPASE = 16.dp
-
-private val BOOK_ITEM_HEIGHT = 190.dp
-private val BOOK_ITEM_WIDTH = 120.dp
-private val LIST_SPACING = 14.dp
-
-private val CREATE_LIST_BUTTON_HEIGHT = 56.dp
-private val CREATE_LIST_BUTTON_WIDTH = 0.8f
-private val CREATE_LIST_BUTTON_PADDING_TOP = 10.dp
-
-private val USERNAME_PADDING_START = 6.dp
-private val USERNAME_PADDING_TOP = 16.dp
-
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
@@ -77,7 +76,6 @@ fun ProfileScreen(
     var newListName by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Добавляем обработчик ошибок
     val error by viewModel.error.collectAsState()
     error?.let { err ->
         LaunchedEffect(err) {
@@ -97,26 +95,40 @@ fun ProfileScreen(
         return
     }
 
-    // Диалог создания нового списка
+    // Современный диалог создания нового списка
     if (showCreateListDialog) {
         AlertDialog(
             onDismissRequest = { showCreateListDialog = false },
-            title = { Text("Создать новый список") },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    "Создать новый список",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 20.sp),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            },
             text = {
                 Column {
-                    Text("Введите название списка:")
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Введите название для вашей новой подборки книг:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = newListName,
                         onValueChange = { newListName = it },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text("Мой список книг") }
+                        shape = RoundedCornerShape(14.dp),
+                        placeholder = { Text("Например: Любимое фэнтези") }
                     )
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         if (newListName.isNotBlank()) {
                             UserSession.currentUser.value?.id?.let { userId ->
@@ -126,7 +138,9 @@ fun ProfileScreen(
                             showCreateListDialog = false
                         }
                     },
-                    enabled = newListName.isNotBlank()
+                    enabled = newListName.isNotBlank(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
                 ) {
                     Text("Создать")
                 }
@@ -138,101 +152,116 @@ fun ProfileScreen(
                         showCreateListDialog = false
                     }
                 ) {
-                    Text("Отмена")
+                    Text("Отмена", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Новая шапка с кнопкой назад и названием
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Кнопка назад
-            IconButton(onClick = { navController.navigate("library") }) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Назад"
-                )
-            }
-
-            // Название экрана по центру
-            Text(
-                text = "Профиль",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Профиль", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigate("library") }) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
             )
-
-            // Пустой элемент для выравнивания
-            Spacer(modifier = Modifier.size(48.dp)) // Размер иконки назад
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Списки книг
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
+                .padding(innerPadding),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            // Списки подборок пользователя
             items(bookLists.size) { index ->
                 BookListSection(bookLists[index], navController)
-                Spacer(modifier = Modifier.height(BOOKLIST_SPASE))
             }
 
-            // Кнопка "Новый список"
+            // Дизайнерская кнопка "Новый список" в самом конце ленты
             item {
-                OutlinedButton(
+                Button(
                     onClick = { showCreateListDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp, bottom = 32.dp)
+                        .height(54.dp)
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
                 ) {
-                    Text("Новый список")
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Создать новый список", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
     }
 }
-
-// Исправленный BookListSection
 @Composable
 private fun BookListSection(bookList: BookList, navController: NavController) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Заголовок списка с кнопкой "Посмотреть все"
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
+            .padding(14.dp)
+    ) {
+        // Заголовок списка с аккуратной текстовой кнопкой
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = bookList.name,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier
-                    .fillMaxWidth(LIST_TITLE_MAX_WIDTH)
-                    .weight(0.7f)
-                    .padding(BOOKLIST_TITLE_PADDING)
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
 
             TextButton(
                 onClick = { navController.navigate("list/${bookList.id}") },
-                modifier = Modifier.weight(0.5f)
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text("Посмотреть все", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    text = "Все",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        color = PrimaryBook,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
             }
         }
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(LIST_SPACING),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(bookList.books.size) { index ->
-                BookItem(bookList.books[index], navController)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (bookList.books.isEmpty()) {
+            Text(
+                text = "В этом списке пока нет книг",
+                style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                textAlign = TextAlign.Center
+            )
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(end = 4.dp)
+            ) {
+                items(bookList.books.size) { index ->
+                    BookItem(bookList.books[index], navController)
+                }
             }
         }
     }
@@ -242,58 +271,61 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
 private fun BookItem(book: Book, navController: NavController) {
     Column(
         modifier = Modifier
-            .width(BOOK_ITEM_WIDTH)
-            .height(BOOK_ITEM_HEIGHT),
+            .width(115.dp)
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null
+            ) {
+                navController.navigate("book/${book.id}")
+            },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Обложка книги
-        val painter = rememberAsyncImagePainter(
-            model = book.cover_url,
-            placeholder = if (book.cover_url != null) {
-                // Показываем плейсхолдер, пока загружается изображение
-                // Можно использовать текущий цвет или другое изображение
-                null
-            } else {
-                // Если coverUrl null, показываем плейсхолдер
-                null
-            }
-        )
-
-        Image(
-            painter = painter,
-            contentDescription = "Обложка книги: ${book.title}",
+        // Вытянутая обложка книги в портретных пропорциях
+        ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.2f)
-                .height(32.dp)
-                .clickable {
-                    navController.navigate("book/${book.id}")
-                },
-            contentScale = ContentScale.FillHeight
-        )
+                .height(165.dp),
+            shape = RoundedCornerShape(10.dp),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+        ) {
+            val painter = rememberAsyncImagePainter(model = book.cover_url)
+            Image(
+                painter = painter,
+                contentDescription = "Обложка книги: ${book.title}",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
 
-        Spacer(modifier = Modifier.height(7.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Название книги
         Text(
             text = book.title,
             style = MaterialTheme.typography.bodyMedium.copy(
-                lineHeight = 16.sp // Уменьшаем интерлиньяж (стандартно ~20.sp)
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                lineHeight = 16.sp
             ),
             textAlign = TextAlign.Center,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(5.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
         // Автор
         Text(
             text = book.author,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 11.sp
+            ),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
         )
     }
 }

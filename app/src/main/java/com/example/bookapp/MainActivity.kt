@@ -1,7 +1,6 @@
 package com.example.bookapp
 
 import LoginScreen
-import ProfileScreen
 import SignUpScreen
 import WelcomeScreen
 import android.os.Bundle
@@ -25,6 +24,7 @@ import com.example.bookapp.pages.AllReviewsScreen
 import com.example.bookapp.pages.BookListScreen
 import com.example.bookapp.pages.BookScreen
 import com.example.bookapp.pages.LibraryScreen
+import com.example.bookapp.pages.ProfileScreen
 import com.example.bookapp.repositories.SupabaseClient
 import com.example.bookapp.ui.theme.BookAppTheme
 import io.github.jan.supabase.postgrest.from
