@@ -155,7 +155,7 @@ fun LibraryScreen(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class) // Add this annotation to LibraryScreen or the whole file
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryHeader(navController: NavController) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -208,7 +208,7 @@ fun BookGridItem(book: Book, navController: NavController) {
         modifier = Modifier
             .fillMaxWidth()
             .height(325.dp)
-            .scale(cardScale) // <--- ВОТ ЭТА СТРОКА
+            .scale(cardScale)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null // убираем стандартный ripple

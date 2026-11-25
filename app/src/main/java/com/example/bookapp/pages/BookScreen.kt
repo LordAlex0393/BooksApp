@@ -230,7 +230,7 @@ fun BookScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 🔥 ВАЖНО: Используем обычный Column с Grid, а не LazyVerticalGrid
+
                     SimilarBooksGrid(similarBooks = similarBooks, navController = navController)
                 }
             }
@@ -308,7 +308,7 @@ fun BookScreen(
     }
 }
 
-// ✅ НОВЫЙ КОМПОНЕНТ: Сетка похожих книг (не скроллится)
+// НОВЫЙ КОМПОНЕНТ: Сетка похожих книг (не скроллится)
 @Composable
 fun SimilarBooksGrid(similarBooks: List<Book>, navController: NavController) {
     Column(
