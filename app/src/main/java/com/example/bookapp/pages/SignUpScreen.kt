@@ -6,41 +6,41 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.bookapp.repositories.AuthRepository
+import com.example.bookapp.ui.theme.AccentSuccess
 import com.example.bookapp.viewModel.SignUpViewModel
 import com.example.bookapp.viewModelFactory.SignUpViewModelFactory
 import kotlinx.coroutines.delay
 
-// ============= КОНСТАНТЫ И КОНФИГУРАЦИЯ =============
-private const val SUCCESS_COLOR_HEX = 0xFF2E7D32
-private const val BCRYPT_COST = 12
-private const val BUTTON_MAX_WIDTH = 0.6f
-private const val TRANSITION_DELAY = 1500L
-private val BUTTON_MAX_HEIGHT = 48.dp
-private val PADDING = 52.dp
-
-// ================ ЭКРАН РЕГИСТРАЦИИ ================
 @Composable
 fun SignUpScreen(
     navController: NavController,
     viewModel: SignUpViewModel = viewModel(factory = SignUpViewModelFactory(AuthRepository()))
 ) {
-    // Автоматический переход после регистрации
     if (viewModel.registrationSuccess) {
         LaunchedEffect(Unit) {
             delay(1500L)
@@ -50,93 +50,135 @@ fun SignUpScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(52.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Text("Регистрация", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Поля формы
-        OutlinedTextField(
-            value = viewModel.username,
-            onValueChange = { viewModel.username = it },
-            label = { Text("Имя пользователя") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-
-        // Поле email
-        OutlinedTextField(
-            value = viewModel.email,
-            onValueChange = { viewModel.email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-
-        // Поле пароля
-        OutlinedTextField(
-            value = viewModel.password,
-            onValueChange = { viewModel.password = it },
-            label = { Text("Пароль") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-
-        // Подтверждение пароля
-        OutlinedTextField(
-            value = viewModel.confirmPassword,
-            onValueChange = { viewModel.confirmPassword = it },
-            label = { Text("Повторите пароль") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Сообщения об ошибках
-        viewModel.error?.let { error ->
-            Text(error, color = MaterialTheme.colorScheme.error)
-        }
-
-        if (viewModel.registrationSuccess) {
-            Text("Успешная регистрация!", color = Color(0xFF2E7D32))
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { viewModel.register() },
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.75f)
-                .height(48.dp),
-            enabled = !viewModel.isLoading
+                .fillMaxSize()
+                .padding(28.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (viewModel.isLoading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-            } else {
-                Text("Зарегистрироваться")
-            }
-        }
+            Text(
+                text = "Создать аккаунт",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.align(Alignment.Start)
+            )
+            Text(
+                text = "Присоединяйтесь к сообществу читателей",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(top = 4.dp, bottom = 24.dp)
+            )
 
-        TextButton(
-            onClick = { navController.navigate("login") }
-        ) {
-            Text("Уже есть аккаунт? Войдите")
+            OutlinedTextField(
+                value = viewModel.username,
+                onValueChange = { viewModel.username = it },
+                label = { Text("Имя пользователя") },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = viewModel.email,
+                onValueChange = { viewModel.email = it },
+                label = { Text("Email") },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = viewModel.password,
+                onValueChange = { viewModel.password = it },
+                label = { Text("Пароль") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                visualTransformation = PasswordVisualTransformation(),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = viewModel.confirmPassword,
+                onValueChange = { viewModel.confirmPassword = it },
+                label = { Text("Повторите пароль") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                visualTransformation = PasswordVisualTransformation(),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            viewModel.error?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp).align(Alignment.Start)
+                )
+            }
+
+            if (viewModel.registrationSuccess) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = AccentSuccess.copy(alpha = 0.1f)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                ) {
+                    Text(
+                        text = "Успешная регистрация! Перенаправление...",
+                        color = AccentSuccess,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = { viewModel.register() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp),
+                enabled = !viewModel.isLoading
+            ) {
+                if (viewModel.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.5.dp
+                    )
+                } else {
+                    Text("Зарегистрироваться", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(
+                onClick = { navController.navigate("login") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Уже есть аккаунт? Войдите",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

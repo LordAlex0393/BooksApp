@@ -6,10 +6,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,16 +31,11 @@ import com.example.bookapp.repositories.AuthRepository
 import com.example.bookapp.viewModel.LoginViewModel
 import com.example.bookapp.viewModelFactory.LoginViewModelFactory
 
-private const val BUTTON_MAX_WIDTH = 0.6f
-private val BUTTON_MAX_HEIGHT = 48.dp
-private val PADDING = 52.dp
-
 @Composable
 fun LoginScreen(
     navController: NavController,
     viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(AuthRepository()))
 ) {
-    // Автоматический переход после успешного входа
     if (viewModel.loginSuccess) {
         LaunchedEffect(Unit) {
             navController.navigate("library") {
@@ -42,71 +44,96 @@ fun LoginScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PADDING),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Text(
-            text = "Вход",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = viewModel.email,
-            onValueChange = { viewModel.email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = viewModel.password,
-            onValueChange = { viewModel.password = it },
-            label = { Text("Пароль") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        if (viewModel.error.isNotEmpty()) {
-            Text(
-                text = viewModel.error,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { viewModel.login() },
+        Column(
             modifier = Modifier
-                .fillMaxWidth(BUTTON_MAX_WIDTH)
-                .height(BUTTON_MAX_HEIGHT),
-            enabled = !viewModel.isLoading
+                .fillMaxSize()
+                .padding(28.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (viewModel.isLoading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-            } else {
-                Text("Войти")
+            Text(
+                text = "Рады возвращению!",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.align(Alignment.Start)
+            )
+
+            Text(
+                text = "Войдите, чтобы продолжить поиск книг",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(top = 4.dp, bottom = 32.dp)
+            )
+
+            OutlinedTextField(
+                value = viewModel.email,
+                onValueChange = { viewModel.email = it },
+                label = { Text("Email") },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = viewModel.password,
+                onValueChange = { viewModel.password = it },
+                label = { Text("Пароль") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                visualTransformation = PasswordVisualTransformation(),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            if (viewModel.error.isNotEmpty()) {
+                Text(
+                    text = viewModel.error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 12.dp).align(Alignment.Start)
+                )
             }
-        }
 
-        Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        TextButton(
-            onClick = { navController.navigate("signup") },
-            modifier = Modifier.fillMaxWidth()
-                .align(Alignment.CenterHorizontally)
-        ) {
-            Text("Нет аккаунта? Зарегистрируйтесь")
+            Button(
+                onClick = { viewModel.login() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp),
+                enabled = !viewModel.isLoading
+            ) {
+                if (viewModel.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.5.dp
+                    )
+                } else {
+                    Text("Войти", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(
+                onClick = { navController.navigate("signup") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Нет аккаунта? Зарегистрируйтесь",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

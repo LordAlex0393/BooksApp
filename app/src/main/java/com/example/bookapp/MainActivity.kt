@@ -26,12 +26,13 @@ import com.example.bookapp.pages.BookListScreen
 import com.example.bookapp.pages.BookScreen
 import com.example.bookapp.pages.LibraryScreen
 import com.example.bookapp.repositories.SupabaseClient
+import com.example.bookapp.ui.theme.BookAppTheme
 import io.github.jan.supabase.postgrest.from
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { App() }
+        setContent { BookAppTheme { App() } }
     }
 }
 
