@@ -523,6 +523,14 @@ fun ReviewItem(review: Review) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                Text(
+                    text = review.username?.username ?: "Пользователь",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     (1..5).forEach { star ->
                         Icon(
@@ -533,14 +541,6 @@ fun ReviewItem(review: Review) {
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = review.username?.username ?: "Пользователь",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
             }
 
             if (!review.text.isNullOrBlank()) {

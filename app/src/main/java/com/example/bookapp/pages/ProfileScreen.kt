@@ -95,7 +95,6 @@ fun ProfileScreen(
         return
     }
 
-    // Современный диалог создания нового списка
     if (showCreateListDialog) {
         AlertDialog(
             onDismissRequest = { showCreateListDialog = false },
@@ -123,7 +122,7 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(14.dp),
-                        placeholder = { Text("Например: Любимое фэнтези") }
+                        placeholder = { Text("Например: Хочу прочесть") }
                     )
                 }
             },
@@ -176,22 +175,21 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp) // Уменьшили шаг между списками с 24.dp до 12.dp для плотности
         ) {
-            // Списки подборок пользователя
+            // Компактные горизонтальные секции подборок
             items(bookLists.size) { index ->
                 BookListSection(bookLists[index], navController)
             }
 
-            // Дизайнерская кнопка "Новый список" в самом конце ленты
             item {
+                Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = { showCreateListDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp)
-                        .padding(bottom = 16.dp),
+                        .height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
                 ) {
@@ -203,13 +201,14 @@ fun ProfileScreen(
         }
     }
 }
+
 @Composable
 private fun BookListSection(bookList: BookList, navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
-            .padding(14.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 12.dp) // Оптимизировали padding, убрав лишнюю высоту
     ) {
         // Заголовок списка с аккуратной текстовой кнопкой
         Row(
@@ -230,7 +229,7 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
 
             TextButton(
                 onClick = { navController.navigate("list/${bookList.id}") },
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
             ) {
                 Text(
                     text = "Все",
@@ -242,7 +241,7 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp)) // Сделали зазор чуть меньше для плотности
 
         if (bookList.books.isEmpty()) {
             Text(
@@ -250,7 +249,7 @@ private fun BookListSection(bookList: BookList, navController: NavController) {
                 style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = 12.dp),
                 textAlign = TextAlign.Center
             )
         } else {
@@ -280,7 +279,7 @@ private fun BookItem(book: Book, navController: NavController) {
             },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Вытянутая обложка книги в портретных пропорциях
+        // Обложка книги в портретных пропорциях
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
@@ -297,7 +296,7 @@ private fun BookItem(book: Book, navController: NavController) {
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp)) // Слегка уменьшили отступы под обложкой
 
         // Название книги
         Text(
