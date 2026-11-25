@@ -217,7 +217,7 @@ fun BookGridItem(book: Book, navController: NavController) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .height(365.dp) // Чуть-чуть увеличили высоту для свободного размещения элементов
+            .height(335.dp) // Уменьшили высоту карточки, чтобы она выглядела аккуратной и плотной
             .scale(cardScale)
             .clickable(
                 interactionSource = interactionSource,
@@ -232,11 +232,11 @@ fun BookGridItem(book: Book, navController: NavController) {
                 .fillMaxSize()
                 .padding(10.dp)
         ) {
-            // Портретная обложка книги
+            // Красивая портретная обложка книги
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(230.dp)
+                    .height(225.dp) // Оставили отличную высоту для портретных пропорций
                     .clip(RoundedCornerShape(12.dp))
                     .shadow(1.dp, shape = RoundedCornerShape(12.dp))
             ) {
@@ -287,7 +287,7 @@ fun BookGridItem(book: Book, navController: NavController) {
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // Автор
+            // Автор книги
             Text(
                 text = book.author ?: "Автор неизвестен",
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
@@ -297,8 +297,9 @@ fun BookGridItem(book: Book, navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.weight(1f))
-            // Нижняя строка: Горизонтальный скролл жанров (.trim() убирает лишние пробелы) + Кнопка "+"
+            // Аккуратный фиксированный отступ вместо расталкивающего weight(1f)
+            Spacer(modifier = Modifier.height(10.dp))
+            // Нижняя строка: Горизонтальный скролл жанров + Кнопка "+"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -327,7 +328,7 @@ fun BookGridItem(book: Book, navController: NavController) {
                         }
                     } else {
                         items(book.genres.size) { index ->
-                            val genreName = book.genres[index].name.trim() // .trim() решает проблему лишних пробелов из базы данных
+                            val genreName = book.genres[index].name.trim()
                             if (genreName.isNotBlank()) {
                                 Box(
                                     modifier = Modifier
