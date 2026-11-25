@@ -76,6 +76,7 @@ import com.example.bookapp.models.Book
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import com.example.bookapp.ui.theme.PrimaryBook
+import com.example.bookapp.ui.theme.TextSecondary
 import com.example.bookapp.viewModel.LibraryViewModel
 import com.example.bookapp.viewModelFactory.LibraryViewModelFactory
 
@@ -216,7 +217,7 @@ fun BookGridItem(book: Book, navController: NavController) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .height(340.dp)
+            .height(365.dp) // Чуть-чуть увеличили высоту для свободного размещения элементов
             .scale(cardScale)
             .clickable(
                 interactionSource = interactionSource,
@@ -231,11 +232,11 @@ fun BookGridItem(book: Book, navController: NavController) {
                 .fillMaxSize()
                 .padding(10.dp)
         ) {
-            // Красивая пропорциональная обложка с мягкой тенью внутри карточки
+            // Портретная обложка книги
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(230.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .shadow(1.dp, shape = RoundedCornerShape(12.dp))
             ) {
@@ -247,7 +248,7 @@ fun BookGridItem(book: Book, navController: NavController) {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Маленький аккуратный бейдж рейтинга прямо на обложке (дизайнерский ход)
+                // Аккуратный бейдж рейтинга
                 Row(
                     modifier = Modifier
                         .padding(8.dp)
@@ -272,8 +273,10 @@ fun BookGridItem(book: Book, navController: NavController) {
                     )
                 }
             }
+
             Spacer(modifier = Modifier.height(10.dp))
-// Название книги
+
+            // Название книги
             Text(
                 text = book.title ?: "Без названия",
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
@@ -281,8 +284,10 @@ fun BookGridItem(book: Book, navController: NavController) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth()
             )
+
             Spacer(modifier = Modifier.height(2.dp))
-// Автор
+
+            // Автор
             Text(
                 text = book.author ?: "Автор неизвестен",
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
@@ -291,34 +296,60 @@ fun BookGridItem(book: Book, navController: NavController) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth()
             )
+
             Spacer(modifier = Modifier.weight(1f))
-// Нижняя строка: Жанр + Кнопка добавления
+            // Нижняя строка: Горизонтальный скролл жанров (.trim() убирает лишние пробелы) + Кнопка "+"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-// Компактный бейдж первого жанра
-                val firstGenre = book.genres.firstOrNull()?.name ?: "Книга"
-                Box(
+                // Горизонтальная скролл-лента для жанров
+                androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .weight(1f, fill = false)
+                        .weight(1f)
+                        .padding(end = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = firstGenre,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    if (book.genres.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "Книга",
+                                    style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp)
+                                )
+                            }
+                        }
+                    } else {
+                        items(book.genres.size) { index ->
+                            val genreName = book.genres[index].name.trim() // .trim() решает проблему лишних пробелов из базы данных
+                            if (genreName.isNotBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = genreName,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 11.sp
+                                        ),
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.width(6.dp))
-// Минималистичная стильная кнопка вместо пульсирующего плюса
+
+                // Минималистичная стильная кнопка "+"
                 Box(
                     modifier = Modifier
                         .size(32.dp)
@@ -336,10 +367,13 @@ fun BookGridItem(book: Book, navController: NavController) {
             }
         }
     }
+
     if (showAddToListDialog) {
         AddToListDialog(book = book, onDismiss = { showAddToListDialog = false })
     }
 }
+
+
 @Composable
 private fun AddToListDialog(
     book: Book,
