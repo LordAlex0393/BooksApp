@@ -31,7 +31,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -130,18 +130,48 @@ fun BookScreen(
                     }
                 }
 
-                // Премиальная обложка книги
+                // Премиальная обложка книги с наложенным поверх рейтингом
                 item {
-                    BookCover(
-                        currentBook,
+                    Box(
                         modifier = Modifier
                             .padding(top = 8.dp, bottom = 24.dp)
                             .width(220.dp)
                             .height(320.dp)
-                    )
+                    ) {
+                        BookCover(
+                            currentBook,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // Дизайнерский ход: Полупрозрачный рейтинг со звездочкой поверх обложки
+                        Row(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .align(Alignment.TopStart),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFD700),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "%.1f".format(currentBook.avg_rating ?: 0.0),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            )
+                        }
+                    }
                 }
 
-                // Информационный блок: Название, Автор, Рейтинг
+                // Информационный блок: Название и Автор
                 item {
                     Column(
                         modifier = Modifier
@@ -164,75 +194,74 @@ fun BookScreen(
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Красивая строка рейтинга
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .background(Color(0xFFFFD700).copy(alpha = 0.12f), RoundedCornerShape(24.dp))
-                                .padding(horizontal = 14.dp, vertical = 6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = "Рейтинг",
-                                tint = Color(0xFFFFD700),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "%.1f".format(currentBook.avg_rating ?: 0.0),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFD4AF37),
-                                    fontSize = 16.sp
-                                )
-                            )
-                        }
                     }
                 }
-                // Блок с жанрами и годом выпуска (Чипсы / Плашки)
+
+                // Блок с жанрами: идет СРАЗУ после автора в виде горизонтальной скролл-ленты
                 item {
-                    Row(
+                    androidx.compose.foundation.lazy.LazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 20.dp),
+                            .padding(horizontal = 24.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val genreText = currentBook.genres.take(3).joinToString { it.name }
-                        Box(
-                            modifier = Modifier
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = if (genreText.isNotBlank()) genreText else "Жанр не указан",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = currentBook.year?.toString()?.plus(" г.") ?: "Год не указан",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = TextSecondary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
+                        if (currentBook.genres.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = "Книга",
+                                        style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary, fontWeight = FontWeight.SemiBold)
+                                    )
+                                }
+                            }
+                        } else {
+                            items(currentBook.genres.size) { index ->
+                                val genreName = currentBook.genres[index].name.trim()
+                                if (genreName.isNotBlank()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(horizontal = 4.dp)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = genreName,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+
+                // Блок с годом издания: Идет ПОД жанрами, отформатирован коротко ("г.")
+                item {
+                    Box(
+                        modifier = Modifier
+                            .padding(bottom = 16.dp)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = currentBook.year?.toString()?.plus(" г.") ?: "Год издания не указан",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = TextSecondary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+                }
+
+
 
                 // Информационный блок "О книге"
                 item {
@@ -411,10 +440,10 @@ fun SimilarBooksGrid(similarBooks: List<Book>, navController: NavController) {
 @Composable
 fun BookCover(book: Book, modifier: Modifier = Modifier) {
     val painter = rememberAsyncImagePainter(model = book.cover_url)
-    ElevatedCard(
-        modifier = modifier,
+    Card(
+        modifier = modifier.shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp)), // Мягкая премиальная тень по краям
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Image(
             painter = painter,
@@ -424,6 +453,7 @@ fun BookCover(book: Book, modifier: Modifier = Modifier) {
         )
     }
 }
+
 
 @Composable
 private fun ReviewsSection(book: Book, navController: NavController) {

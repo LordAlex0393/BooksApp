@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,19 +18,25 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,20 +46,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookapp.models.Book
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.ui.theme.LoadingIndicator
+import com.example.bookapp.ui.theme.TextSecondary
 import com.example.bookapp.viewModel.ProfileViewModel
 import com.example.bookapp.viewModelFactory.ProfileViewModelFactory
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookListScreen(
     navController: NavController,
@@ -69,29 +82,31 @@ fun BookListScreen(
         }
     }
 
-    // Диалог подтверждения удаления списка
+    // Красивый диалог подтверждения удаления всего списка
     if (showDeleteListDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteListDialog = false },
-            title = { Text("Удаление списка") },
-            text = { Text("Вы точно хотите удалить этот список? Все книги в нём будут удалены.") },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Удаление списка", style = MaterialTheme.typography.headlineMedium.copy(fontSize = 20.sp)) },
+            text = { Text("Вы точно хотите удалить этот список? Все книги в нём будут убраны из этой подборки.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary) },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         viewModel.deleteBookList(listId) {
-                            navController.navigate("profile") // Возвращаемся назад после удаления
+                            navController.navigate("profile")
                         }
                         showDeleteListDialog = false
-                    }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                    Text("Удалить")
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDeleteListDialog = false }
-                ) {
-                    Text("Отмена")
+                TextButton(onClick = { showDeleteListDialog = false }) {
+                    Text("Отмена", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         )
@@ -104,106 +119,108 @@ fun BookListScreen(
 
     val currentList = bookLists.find { it.id.toString() == listId }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
-            }
-            Text(
-                text = currentList?.name ?: "Список не найден",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
-
-        when {
-            currentList == null -> {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Не удалось найти список с ID: $listId")
-                    Text("Доступные списки:")
-                    bookLists.forEach { list ->
-                        Text("- ${list.name} (ID: ${list.id})")
-                    }
-                }
-            }
-            currentList.books.isEmpty() -> {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
                     Text(
-                        text = "Этот список пуст",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        textAlign = TextAlign.Center
+                        text = currentList?.name ?: "Список книг",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    // Кнопка удаления списка
-                    Button(
-                        onClick = { showDeleteListDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .padding(top = 16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Удалить список",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Удалить список")
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+        ) {
+            when {
+                currentList == null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Список не найден", style = MaterialTheme.typography.bodyLarge, color = TextSecondary)
                     }
                 }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.padding(top = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(currentList.books) { book ->
-                        BookListItem(
-                            book = book,
-                            listId = listId,
-                            navController = navController,
-                            onDeleteClick = { bookId ->
-                                viewModel.removeBookFromList(listId, bookId)
-                            }
+                currentList.books.isEmpty() -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Этот список пока пуст",
+                            style = MaterialTheme.typography.titleLarge.copy(color = TextSecondary, fontWeight = FontWeight.SemiBold),
+                            textAlign = TextAlign.Center
                         )
-                    }
-
-                    // Кнопка удаления списка в конце
-                    item {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Spacer(modifier = Modifier.height(24.dp))
+                        OutlinedButton(
+                            onClick = { showDeleteListDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth(0.7f).height(50.dp)
                         ) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            OutlinedButton(
-                                onClick = { showDeleteListDialog = true },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                ),
+                            Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Удалить пустой список")
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(currentList.books) { book ->
+                            BookListItem(
+                                book = book,
+                                listId = listId,
+                                navController = navController,
+                                onDeleteClick = { bookId ->
+                                    viewModel.removeBookFromList(listId, bookId)
+                                }
+                            )
+                        }
+
+                        // Аккуратная кнопка удаления непустого списка в самом конце ленты
+                        item {
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.6f)
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Удалить список",
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Удалить список")
+                                OutlinedButton(
+                                    onClick = { showDeleteListDialog = true },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.2.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.6f)
+                                        .height(48.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DeleteOutline,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Удалить список", style = MaterialTheme.typography.labelLarge)
+                                }
                             }
                         }
                     }
@@ -222,135 +239,205 @@ fun BookListItem(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // Диалог подтверждения удаления
+    // Диалог подтверждения удаления конкретной книги из подборки
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Удаление книги") },
-            text = { Text("Вы точно хотите удалить книгу из списка?") },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Исключить книгу", style = MaterialTheme.typography.headlineMedium.copy(fontSize = 18.sp)) },
+            text = { Text("Вы точно хотите убрать эту книгу из текущего списка?", style = MaterialTheme.typography.bodyMedium, color = TextSecondary) },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         onDeleteClick(book.id)
                         showDeleteDialog = false
-                    }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                    Text("Убрать")
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false }
-                ) {
-                    Text("Отмена")
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Отмена", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         )
     }
 
+    // Использование Card с ручной тенью убирает визуальный баг на закруглениях углов
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize() // <--- Плавное изменение размера
+            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)) // Мягкая и равномерная тень по всему периметру
+            .animateContentSize(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Обложка книги
+            // Книжная портретная обложка
             Box(
                 modifier = Modifier
-                    .width(70.dp)
-                    .height(110.dp)
-                    .clickable { navController.navigate("book/${book.id}") }
+                    .width(75.dp)
+                    .height(115.dp)
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
+                    ) { navController.navigate("book/${book.id}") }
             ) {
                 BookCoverImage(coverUrl = book.cover_url)
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Информация о книге
+            // Текстовая информация о книге
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable { navController.navigate("book/${book.id}") }
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
+                    ) { navController.navigate("book/${book.id}") }
             ) {
                 Text(
                     text = book.title ?: "Без названия",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+
                 Spacer(modifier = Modifier.height(2.dp))
+
                 Text(
                     text = book.author ?: "Автор неизвестен",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    color = TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = book.genres.take(2).joinToString { it.name } ?: "Без жанра",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = book.year?.toString()?.plus(" г.") ?: "Дата неизвестна",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                // Нижний ряд: Горизонтальный скролл ВСЕХ жанров + Год издания
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Скролл-лента для жанров (занимает доступное пространство слева)
+                    androidx.compose.foundation.lazy.LazyRow(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (book.genres.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "Книга",
+                                        style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp)
+                                    )
+                                }
+                            }
+                        } else {
+                            items(book.genres.size) { index ->
+                                val genreName = book.genres[index].name.trim()
+                                if (genreName.isNotBlank()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = genreName,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 11.sp
+                                            ),
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Бейдж года издания (всегда прижат к правой части перед корзиной)
+                    Box(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = book.year?.toString()?.plus(" г.") ?: "—",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = TextSecondary,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Кнопка удаления
+            // Иконка удаления (корзина) с мягким круглым фоном
             IconButton(
                 onClick = { showDeleteDialog = true },
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.08f), androidx.compose.foundation.shape.CircleShape)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Default.DeleteOutline,
                     contentDescription = "Удалить книгу",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
     }
 }
 
+
 @Composable
 fun BookCoverImage(coverUrl: String?) {
-    val painter = rememberAsyncImagePainter(
-        model = coverUrl,
-        error = null
-    )
+    val painter = rememberAsyncImagePainter(model = coverUrl)
 
-    Card(
-        modifier = Modifier.fillMaxSize(),
-        shape = MaterialTheme.shapes.medium
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         if (coverUrl != null) {
             Image(
                 painter = painter,
-                contentDescription = "Обложка книги",
+                contentDescription = "Обложка",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
         } else {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "📖",
-                    style = MaterialTheme.typography.displayMedium
+                    fontSize = 24.sp
                 )
             }
         }
