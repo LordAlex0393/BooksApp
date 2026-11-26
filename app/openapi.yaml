@@ -1,0 +1,575 @@
+openapi: 3.0.3
+info:
+  title: BookApp API — Онлайн-библиотека для поиска книг
+  description: |
+    Спецификация клиент-серверного взаимодействия для мобильного Android-приложения (Jetpack Compose).
+    Описывает основной пользовательский сценарий: авторизация, просмотр каталога книг, изучение деталей книги и отзывов, публикация отзыва и сохранение книги в пользовательскую подборку.
+  version: 1.0.0
+
+servers:
+  - url: https://example.com
+    description: Основной сервер API (Supabase REST / PostgREST)
+
+tags:
+  - name: Auth
+    description: Аутентификация пользователей
+  - name: Books
+    description: Каталог книг и детальная информация
+  - name: Reviews
+    description: Отзывы и оценки книг
+  - name: BookLists
+    description: Пользовательские списки и подборки книг
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Авторизация пользователя по email и паролю
+      description: Проверяет существование пользователя по email и сверяет хэш пароля. Используется на экране LoginScreen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "reader@example.com"
+              password: "MySecretPassword123"
+      responses:
+        '200':
+          description: Успешная авторизация, возвращаются данные профиля пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                username: "AlexReader"
+                email: "reader@example.com"
+                lastAuthTime: 1732620000000
+        '400':
+          description: Некорректный формат запроса (пустой email или пароль)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: "Поля email и password обязательны для заполнения"
+        '401':
+          description: Неверный пароль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 401
+                message: "Неверный пароль"
+        '404':
+          description: Пользователь с указанным email не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Пользователь не найден"
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /books:
+    get:
+      tags:
+        - Books
+      summary: Получение списка всех книг каталога
+      description: Загружает каталог книг с их жанрами и средним рейтингом для отображения на главном экране LibraryScreen. Поддерживает фильтрацию по поисковому запросу и жанру.
+      parameters:
+        - name: search
+          in: query
+          required: false
+          description: Поисковый запрос по названию книги или автору
+          schema:
+            type: string
+          example: "Мастер"
+        - name: genre_id
+          in: query
+          required: false
+          description: Идентификатор жанра для фильтрации
+          schema:
+            type: integer
+          example: 3
+      responses:
+        '200':
+          description: Список книг успешно получен (может быть пустым массивом, если по фильтру ничего не найдено)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+              example:
+                - id: "b1a2c3d4-0001-4000-8000-000000000001"
+                  title: "Мастер и Маргарита"
+                  author: "Михаил Булгаков"
+                  genres:
+                    - id: 1
+                      name: "Классика"
+                    - id: 2
+                      name: "Фантастика"
+                  description: "Роман о визите дьявола в Москву 1930-х годов."
+                  cover_url: "https://example.com"
+                  year: 1967
+                  avg_rating: 4.9
+        '400':
+          description: Некорректный параметр фильтрации (например, нечисловой genre_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Ошибка подключения к базе данных при загрузке каталога
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /books/{bookId}:
+    get:
+      tags:
+        - Books
+      summary: Получение детальной информации о книге и её отзывов
+      description: Возвращает полную карточку книги, список жанров, средний рейтинг и все отзывы пользователей. Используется на экране BookScreen.
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: Уникальный идентификатор книги (UUID)
+          schema:
+            type: string
+            format: uuid
+          example: "b1a2c3d4-0001-4000-8000-000000000001"
+      responses:
+        '200':
+          description: Детальная информация о книге успешно получена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+              example:
+                id: "b1a2c3d4-0001-4000-8000-000000000001"
+                title: "Мастер и Маргарита"
+                author: "Михаил Булгаков"
+                genres:
+                  - id: 1
+                    name: "Классика"
+                description: "Роман о визите дьявола в Москву 1930-х годов."
+                cover_url: "https://example.com"
+                year: 1967
+                avg_rating: 4.9
+                reviews:
+                  - id: "r9998887-0001-4000-8000-000000000010"
+                    book_id: "b1a2c3d4-0001-4000-8000-000000000001"
+                    user_id: "550e8400-e29b-41d4-a716-446655440000"
+                    rating: 5
+                    text: "Перечитываю третий раз, невероятная атмосфера!"
+                    created_at: "2026-11-25T14:30:00Z"
+                    user:
+                      username: "AlexReader"
+        '400':
+          description: Невалидный формат идентификатора книги
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Книга с указанным ID не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Книга не найдена"
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /books/{bookId}/reviews:
+    post:
+      tags:
+        - Reviews
+      summary: Создание или обновление отзыва на книгу (Upsert)
+      description: Сохраняет оценку и текстовый отзыв пользователя. Если пользователь уже оставлял отзыв на эту книгу, запись обновляется (конфликт по паре user_id, book_id).
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: Идентификатор книги
+          schema:
+            type: string
+            format: uuid
+          example: "b1a2c3d4-0001-4000-8000-000000000001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+            example:
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              rating: 5
+              text: "Отличная книга, читается на одном дыхании."
+      responses:
+        '201':
+          description: Отзыв успешно сохранён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+              example:
+                id: "r9998887-0001-4000-8000-000000000011"
+                book_id: "b1a2c3d4-0001-4000-8000-000000000001"
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                rating: 5
+                text: "Отличная книга, читается на одном дыхании."
+                created_at: "2026-11-26T10:15:00Z"
+        '400':
+          description: Ошибка валидации (оценка вне диапазона 1–5 или не передан user_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: "Рейтинг должен быть целым числом от 1 до 5"
+        '401':
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Книга или пользователь не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Ошибка сохранения отзыва в базе данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /lists/{listId}/items:
+    post:
+      tags:
+        - BookLists
+      summary: Добавление книги в пользовательский список
+      description: Добавляет выбранную книгу в личную подборку пользователя (например, «Хочу прочитать» или «Избранное»). Вызывается с экрана LibraryScreen или BookScreen.
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          description: Идентификатор пользовательского списка книг
+          schema:
+            type: string
+            format: uuid
+          example: "a1112222-0001-4000-8000-000000000005"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBookToListRequest'
+            example:
+              book_id: "b1a2c3d4-0001-4000-8000-000000000001"
+      responses:
+        '201':
+          description: Книга успешно добавлена в список
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookListItemResponse'
+              example:
+                book_list_id: "a1112222-0001-4000-8000-000000000005"
+                book_id: "b1a2c3d4-0001-4000-8000-000000000001"
+                added_at: "2026-11-26T10:20:00Z"
+        '401':
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Список или книга не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Книга уже добавлена в этот список
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 409
+                message: "Эта книга уже присутствует в выбранном списке"
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    User:
+      type: object
+      description: Модель пользователя приложения
+      required:
+        - id
+        - username
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор пользователя
+        username:
+          type: string
+          description: Отображаемое имя пользователя
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+        bookLists:
+          type: array
+          description: Список пользовательских подборок
+          items:
+            $ref: '#/components/schemas/BookList'
+        lastAuthTime:
+          type: integer
+          format: int64
+          description: Временная метка последней авторизации (Unix timestamp в мс)
+
+    Book:
+      type: object
+      description: Модель книги в каталоге
+      required:
+        - id
+        - title
+        - author
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор книги
+        title:
+          type: string
+          description: Название книги
+        author:
+          type: string
+          description: Автор книги
+        genres:
+          type: array
+          description: Список жанров книги
+          items:
+            $ref: '#/components/schemas/Genre'
+        description:
+          type: string
+          nullable: true
+          description: Аннотация (описание) книги
+        cover_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Ссылка на изображение обложки
+        year:
+          type: integer
+          nullable: true
+          description: Год издания книги
+        avg_rating:
+          type: number
+          format: double
+          nullable: true
+          minimum: 0
+          maximum: 5
+          description: Средний рейтинг книги по отзывам
+        reviews:
+          type: array
+          nullable: true
+          description: Список отзывов (заполняется при запросе детальной карточки книги)
+          items:
+            $ref: '#/components/schemas/Review'
+
+    Genre:
+      type: object
+      description: Жанр книги
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          description: Идентификатор жанра
+        name:
+          type: string
+          description: Название жанра
+
+    Review:
+      type: object
+      description: Отзыв пользователя о книге
+      required:
+        - rating
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Уникальный идентификатор отзыва
+        book_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Идентификатор книги
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Идентификатор автора отзыва
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Оценка книги от 1 до 5
+        text:
+          type: string
+          nullable: true
+          description: Текстовый комментарий к оценке
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Дата и время публикации отзыва (ISO 8601)
+        user:
+          $ref: '#/components/schemas/ReviewUser'
+
+    ReviewUser:
+      type: object
+      description: Краткая информация об авторе отзыва
+      required:
+        - username
+      properties:
+        username:
+          type: string
+          description: Имя пользователя, оставившего отзыв
+
+    BookList:
+      type: object
+      description: Пользовательская подборка книг
+      required:
+        - id
+        - name
+        - creator_id
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор списка
+        name:
+          type: string
+          description: Название списка (например, «Прочитано»)
+        creator_id:
+          type: string
+          format: uuid
+          description: Идентификатор создателя списка
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания списка
+        books:
+          type: array
+          description: Книги, входящие в данный список
+          items:
+            $ref: '#/components/schemas/Book'
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    ReviewRequest:
+      type: object
+      required:
+        - user_id
+        - rating
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          nullable: true
+
+    AddBookToListRequest:
+      type: object
+      required:
+        - book_id
+      properties:
+        book_id:
+          type: string
+          format: uuid
+
+    BookListItemResponse:
+      type: object
+      required:
+        - book_list_id
+        - book_id
+        - added_at
+      properties:
+        book_list_id:
+          type: string
+          format: uuid
+        book_id:
+          type: string
+          format: uuid
+        added_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      description: Стандартный формат ошибки API
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: HTTP-код ошибки
+        message:
+          type: string
+          description: Понятное описание причины ошибки
