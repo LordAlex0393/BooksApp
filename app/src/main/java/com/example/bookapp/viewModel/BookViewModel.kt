@@ -21,6 +21,9 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
 
+    private val _errorMessage = mutableStateOf<String?>(null)
+    val errorMessage: State<String?> = _errorMessage
+
     private val _similarBooks = MutableStateFlow<List<Book>>(emptyList())
     val similarBooks: StateFlow<List<Book>> = _similarBooks.asStateFlow()
 
@@ -34,13 +37,18 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     fun loadBook(bookId: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            _book.value = repository.getBookById(bookId)
-            _isLoading.value = false
+            _errorMessage.value = null
+            try {
+                _book.value = repository.getBookById(bookId)
+            } catch (e: Exception) {
+                _errorMessage.value = "Не удалось загрузить информацию о книге. Проверьте соединение."
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-
-    fun saveReview(bookId: String, userId: String, rating: Int, text: String?) {
+    fun saveReview(bookId: String, userId: String, rating: Int, text: String?, isSpoiler: Boolean) {
         viewModelScope.launch {
             try {
                 val review = Review(
@@ -49,13 +57,13 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
                     user_id = userId,
                     rating = rating,
                     text = text,
+                    is_spoiler = isSpoiler,
                     created_at = System.now().toString()
                 )
                 repository.saveReview(review)
-                // Обновляем данные книги
                 loadBook(bookId)
             } catch (e: Exception) {
-                // Обработка ошибок
+                _errorMessage.value = "Не удалось сохранить отзыв. Попробуйте ещё раз."
             }
         }
     }

@@ -17,16 +17,20 @@ class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     private val _userLists = MutableStateFlow<List<BookList>>(emptyList())
     val userLists: StateFlow<List<BookList>> = _userLists.asStateFlow()
 
     fun loadBooks() {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
             try {
                 _books.value = repository.getAllBooks()
             } catch (e: Exception) {
-                // Обработка ошибок
+                _errorMessage.value = "Не удалось загрузить каталог книг. Проверьте подключение к интернету."
             } finally {
                 _isLoading.value = false
             }
@@ -38,7 +42,6 @@ class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
             try {
                 repository.addBookToList(listId, bookId)
             } catch (e: Exception) {
-                // Handle error
             }
         }
     }
@@ -48,7 +51,6 @@ class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
             try {
                 repository.removeBookFromList(listId, bookId)
             } catch (e: Exception) {
-                // Handle error
             }
         }
     }
@@ -57,9 +59,8 @@ class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 _userLists.value = repository.getUserBookLists(userId)
-                    .filter { it.creator_id == userId } // Фильтруем только списки пользователя
+                    .filter { it.creator_id == userId }
             } catch (e: Exception) {
-                // Обработка ошибок
             }
         }
     }

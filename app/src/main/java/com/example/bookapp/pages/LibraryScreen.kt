@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -33,16 +34,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -76,6 +77,9 @@ import com.example.bookapp.models.Book
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import com.example.bookapp.ui.theme.PrimaryBook
+import com.example.bookapp.ui.theme.SecondaryBook
+import com.example.bookapp.ui.theme.SurfaceCard
+import com.example.bookapp.ui.theme.TextPrimary
 import com.example.bookapp.ui.theme.TextSecondary
 import com.example.bookapp.viewModel.LibraryViewModel
 import com.example.bookapp.viewModelFactory.LibraryViewModelFactory
@@ -87,6 +91,7 @@ fun LibraryScreen(
 ) {
     val books by viewModel.books.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState(initial = null)
     var visibleBooksCount by remember { mutableStateOf(26) }
     val currentUser = UserSession.currentUser.value
 
@@ -104,50 +109,128 @@ fun LibraryScreen(
         topBar = { LibraryHeader(navController) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        if (isLoading && books.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryBook)
+        when {
+            isLoading && books.isEmpty() -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PrimaryBook)
+                }
             }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.weight(1f)
+            errorMessage != null && books.isEmpty() -> {
+                ErrorRetryView(
+                    message = errorMessage ?: "Ошибка загрузки данных",
+                    onRetry = {
+                        viewModel.loadBooks()
+                        currentUser?.id?.let { viewModel.loadUserLists(it) }
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
                 ) {
-                    items(
-                        items = books.take(visibleBooksCount),
-                        key = { it.id }
-                    ) { book ->
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) +
-                                    slideInVertically(initialOffsetY = { 80 }, animationSpec = spring(stiffness = Spring.StiffnessLow))
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(
+                            items = books.take(visibleBooksCount),
+                            key = { it.id }
+                        ) { book ->
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) +
+                                        slideInVertically(initialOffsetY = { 80 }, animationSpec = spring(stiffness = Spring.StiffnessLow))
+                            ) {
+                                BookGridItem(book, navController)
+                            }
+                        }
+                    }
+
+                    if (visibleBooksCount < books.size) {
+                        Button(
+                            onClick = { visibleBooksCount += 8 },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
                         ) {
-                            BookGridItem(book, navController)
+                            Text("Загрузить ещё", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
+            }
+        }
+    }
+}
 
-                if (visibleBooksCount < books.size) {
-                    Button(
-                        onClick = { visibleBooksCount += 8 },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
-                    ) {
-                        Text("Загрузить ещё", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
+@Composable
+fun ErrorRetryView(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(2.dp, RoundedCornerShape(20.dp))
+                .background(SurfaceCard, RoundedCornerShape(20.dp))
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(PrimaryBook.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WifiOff,
+                    contentDescription = null,
+                    tint = PrimaryBook,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = "Ошибка соединения",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            Button(
+                onClick = onRetry,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Повторить")
             }
         }
     }
@@ -163,7 +246,6 @@ private fun LibraryHeader(navController: NavController) {
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "profile_icon_scale"
     )
-
     CenterAlignedTopAppBar(
         title = {
             Text(
@@ -202,7 +284,6 @@ private fun LibraryHeader(navController: NavController) {
         )
     )
 }
-
 @Composable
 fun BookGridItem(book: Book, navController: NavController) {
     var showAddToListDialog by remember { mutableStateOf(false) }
@@ -213,32 +294,29 @@ fun BookGridItem(book: Book, navController: NavController) {
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "book_card_press"
     )
-
-    ElevatedCard(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(335.dp) // Уменьшили высоту карточки, чтобы она выглядела аккуратной и плотной
+            .height(335.dp)
             .scale(cardScale)
+            .shadow(2.dp, shape = RoundedCornerShape(16.dp))
+            .background(SurfaceCard, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
-            ) { navController.navigate("book/${book.id}") },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+            ) { navController.navigate("book/${book.id}") }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(10.dp)
         ) {
-            // Красивая портретная обложка книги
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(225.dp) // Оставили отличную высоту для портретных пропорций
+                    .height(225.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .shadow(1.dp, shape = RoundedCornerShape(12.dp))
             ) {
                 val painter = rememberAsyncImagePainter(model = book.cover_url)
                 Image(
@@ -247,8 +325,6 @@ fun BookGridItem(book: Book, navController: NavController) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-
-                // Аккуратный бейдж рейтинга
                 Row(
                     modifier = Modifier
                         .padding(8.dp)
@@ -273,40 +349,34 @@ fun BookGridItem(book: Book, navController: NavController) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(10.dp))
-
-            // Название книги
             Text(
-                text = book.title ?: "Без названия",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                text = book.title,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = TextPrimary
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth()
             )
-
             Spacer(modifier = Modifier.height(2.dp))
-
-            // Автор книги
             Text(
-                text = book.author ?: "Автор неизвестен",
+                text = book.author,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            // Аккуратный фиксированный отступ вместо расталкивающего weight(1f)
             Spacer(modifier = Modifier.height(10.dp))
-            // Нижняя строка: Горизонтальный скролл жанров + Кнопка "+"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Горизонтальная скролл-лента для жанров
-                androidx.compose.foundation.lazy.LazyRow(
+                LazyRow(
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 4.dp),
@@ -317,7 +387,7 @@ fun BookGridItem(book: Book, navController: NavController) {
                         item {
                             Box(
                                 modifier = Modifier
-                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(6.dp))
+                                    .background(TextSecondary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
@@ -332,13 +402,13 @@ fun BookGridItem(book: Book, navController: NavController) {
                             if (genreName.isNotBlank()) {
                                 Box(
                                     modifier = Modifier
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                                        .background(PrimaryBook.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         text = genreName,
                                         style = MaterialTheme.typography.labelSmall.copy(
-                                            color = MaterialTheme.colorScheme.primary,
+                                            color = PrimaryBook,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 11.sp
                                         ),
@@ -349,32 +419,27 @@ fun BookGridItem(book: Book, navController: NavController) {
                         }
                     }
                 }
-
-                // Минималистичная стильная кнопка "+"
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), CircleShape)
+                        .background(SecondaryBook.copy(alpha = 0.12f), CircleShape)
                         .clickable { showAddToListDialog = true },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = "Добавить в список",
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = SecondaryBook,
                         modifier = Modifier.size(18.dp)
                     )
                 }
             }
         }
     }
-
     if (showAddToListDialog) {
         AddToListDialog(book = book, onDismiss = { showAddToListDialog = false })
     }
 }
-
-
 @Composable
 private fun AddToListDialog(
     book: Book,
@@ -393,7 +458,7 @@ private fun AddToListDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = SurfaceCard,
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -492,10 +557,9 @@ private fun AddToListDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Отмена", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                Text("Отмена", color = TextSecondary)
             }
         }
     )
 }
-// Вспомогательный модификатор для выравнивания иконки профиля
-private fun Modifier.alignmentOffset() = this.offset(y = (0).dp)
+private fun Modifier.alignmentOffset() = this.offset(y = 0.dp)

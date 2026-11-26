@@ -1,5 +1,6 @@
 package com.example.bookapp.pages
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -21,15 +22,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -64,6 +69,8 @@ import com.example.bookapp.models.Review
 import com.example.bookapp.models.UserSession
 import com.example.bookapp.repositories.BookRepository
 import com.example.bookapp.ui.theme.PrimaryBook
+import com.example.bookapp.ui.theme.SurfaceCard
+import com.example.bookapp.ui.theme.TextPrimary
 import com.example.bookapp.ui.theme.TextSecondary
 import com.example.bookapp.viewModel.BookViewModel
 import com.example.bookapp.viewModelFactory.BookViewModelFactory
@@ -76,9 +83,11 @@ fun BookScreen(
 ) {
     val book: Book? by viewModel.book
     val isLoading: Boolean by viewModel.isLoading
+    val errorMessage: String? by viewModel.errorMessage
     var showReviewDialog by remember { mutableStateOf(false) }
     var rating by remember { mutableStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
+    var isSpoiler by remember { mutableStateOf(false) }
     val similarBooks by viewModel.similarBooks.collectAsState()
 
     val starColors = remember(rating) {
@@ -93,6 +102,36 @@ fun BookScreen(
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = PrimaryBook)
+        }
+        return
+    }
+
+    if (errorMessage != null && book == null) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                    }
+                }
+            }
+        ) { innerPadding ->
+            ErrorRetryView(
+                message = errorMessage ?: "Ошибка загрузки книги",
+                onRetry = {
+                    viewModel.loadBook(bookId)
+                    viewModel.loadSimilarBooks(bookId)
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            )
         }
         return
     }
@@ -116,7 +155,6 @@ fun BookScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
-                // Навигационная панель сверху
                 item {
                     Row(
                         modifier = Modifier
@@ -130,7 +168,6 @@ fun BookScreen(
                     }
                 }
 
-                // Премиальная обложка книги с наложенным поверх рейтингом
                 item {
                     Box(
                         modifier = Modifier
@@ -143,7 +180,6 @@ fun BookScreen(
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        // Дизайнерский ход: Полупрозрачный рейтинг со звездочкой поверх обложки
                         Row(
                             modifier = Modifier
                                 .padding(12.dp)
@@ -171,7 +207,6 @@ fun BookScreen(
                     }
                 }
 
-                // Информационный блок: Название и Автор
                 item {
                     Column(
                         modifier = Modifier
@@ -196,10 +231,8 @@ fun BookScreen(
                         )
                     }
                 }
-
-                // Блок с жанрами: идет СРАЗУ после автора в виде горизонтальной скролл-ленты
                 item {
-                    androidx.compose.foundation.lazy.LazyRow(
+                    LazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp, vertical = 12.dp),
@@ -210,7 +243,7 @@ fun BookScreen(
                             item {
                                 Box(
                                     modifier = Modifier
-                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                                        .background(TextSecondary.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
                                         .padding(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
                                     Text(
@@ -226,13 +259,13 @@ fun BookScreen(
                                     Box(
                                         modifier = Modifier
                                             .padding(horizontal = 4.dp)
-                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                            .background(PrimaryBook.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
                                             .padding(horizontal = 12.dp, vertical = 6.dp)
                                     ) {
                                         Text(
                                             text = genreName,
                                             style = MaterialTheme.typography.bodyMedium.copy(
-                                                color = MaterialTheme.colorScheme.primary,
+                                                color = PrimaryBook,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                         )
@@ -242,13 +275,11 @@ fun BookScreen(
                         }
                     }
                 }
-
-                // Блок с годом издания: Идет ПОД жанрами, отформатирован коротко ("г.")
                 item {
                     Box(
                         modifier = Modifier
                             .padding(bottom = 16.dp)
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                            .background(TextSecondary.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                             .padding(horizontal = 14.dp, vertical = 6.dp)
                     ) {
                         Text(
@@ -260,10 +291,6 @@ fun BookScreen(
                         )
                     }
                 }
-
-
-
-                // Информационный блок "О книге"
                 item {
                     Column(
                         modifier = Modifier
@@ -275,9 +302,7 @@ fun BookScreen(
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
                             modifier = Modifier.fillMaxWidth()
                         )
-
                         Spacer(modifier = Modifier.height(8.dp))
-
                         Text(
                             text = currentBook.description ?: "Описание отсутствует",
                             style = MaterialTheme.typography.bodyMedium.copy(
@@ -288,13 +313,9 @@ fun BookScreen(
                         )
                     }
                 }
-
-                // Секция отзывов читателей
                 item {
                     ReviewsSection(currentBook, navController)
                 }
-
-                // Кнопка написания нового отзыва (с мягкой пружинной анимацией нажатия)
                 item {
                     Button(
                         onClick = { showReviewDialog = true },
@@ -302,18 +323,13 @@ fun BookScreen(
                             .fillMaxWidth(0.8f)
                             .padding(top = 24.dp)
                             .scale(buttonScale)
-                            .height(50.dp)
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null
-                            ) { showReviewDialog = true },
+                            .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
                     ) {
                         Text("Оставить свой отзыв", style = MaterialTheme.typography.labelLarge)
                     }
                 }
-                // Блок «Похожие книги»
                 if (similarBooks.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(32.dp))
@@ -325,18 +341,15 @@ fun BookScreen(
                                 .padding(horizontal = 24.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-
                         SimilarBooksGrid(similarBooks = similarBooks, navController = navController)
                     }
                 }
             }
-
-            // Аккуратное диалоговое окно создания отзыва
             if (showReviewDialog) {
                 AlertDialog(
                     onDismissRequest = { showReviewDialog = false },
                     shape = RoundedCornerShape(24.dp),
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = SurfaceCard,
                     title = {
                         Text(
                             "Оцените издание",
@@ -376,6 +389,25 @@ fun BookScreen(
                                 maxLines = 4,
                                 shape = RoundedCornerShape(14.dp)
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable { isSpoiler = !isSpoiler }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = isSpoiler,
+                                    onCheckedChange = { isSpoiler = it },
+                                    colors = CheckboxDefaults.colors(checkedColor = PrimaryBook)
+                                )
+                                Text(
+                                    text = "Отзыв содержит спойлеры",
+                                    style = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary)
+                                )
+                            }
                         }
                     },
                     confirmButton = {
@@ -386,7 +418,8 @@ fun BookScreen(
                                         bookId = currentBook.id,
                                         userId = user.id,
                                         rating = rating,
-                                        text = reviewText.takeIf { it.isNotBlank() }
+                                        text = reviewText.takeIf { it.isNotBlank() },
+                                        isSpoiler = isSpoiler
                                     )
                                 }
                                 showReviewDialog = false
@@ -400,7 +433,7 @@ fun BookScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { showReviewDialog = false }) {
-                            Text("Отмена", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                            Text("Отмена", color = TextSecondary)
                         }
                     }
                 )
@@ -408,7 +441,6 @@ fun BookScreen(
         }
     }
 }
-
 @Composable
 fun SimilarBooksGrid(similarBooks: List<Book>, navController: NavController) {
     Column(
@@ -436,14 +468,14 @@ fun SimilarBooksGrid(similarBooks: List<Book>, navController: NavController) {
         }
     }
 }
-
 @Composable
 fun BookCover(book: Book, modifier: Modifier = Modifier) {
     val painter = rememberAsyncImagePainter(model = book.cover_url)
-    Card(
-        modifier = modifier.shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp)), // Мягкая премиальная тень по краям
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    Box(
+        modifier = modifier
+            .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(SurfaceCard)
     ) {
         Image(
             painter = painter,
@@ -453,13 +485,10 @@ fun BookCover(book: Book, modifier: Modifier = Modifier) {
         )
     }
 }
-
-
 @Composable
 private fun ReviewsSection(book: Book, navController: NavController) {
     val visibleReviews = 3
     val reviews = book.reviews?.take(visibleReviews) ?: emptyList()
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -476,16 +505,13 @@ private fun ReviewsSection(book: Book, navController: NavController) {
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
                 modifier = Modifier.weight(1f)
             )
-
             if (reviews.isNotEmpty()) {
                 TextButton(onClick = { navController.navigate("book/${book.id}/reviews") }) {
                     Text("Все отзывы", style = MaterialTheme.typography.labelLarge.copy(color = PrimaryBook))
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(8.dp))
-
         if (reviews.isEmpty()) {
             Text(
                 text = "Пока никто не оставил отзыв. Будьте первым!",
@@ -494,75 +520,150 @@ private fun ReviewsSection(book: Book, navController: NavController) {
             )
         } else {
             Column(
-                modifier = Modifier.padding(horizontal = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.padding(horizontal = 22.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 reviews.forEach { review ->
-                    ReviewItem(review)
+                    ReviewCardContent(review = review)
                 }
             }
         }
     }
 }
-
 @Composable
-fun ReviewItem(review: Review) {
-    Card(
-        modifier = Modifier
+fun ReviewCardContent(review: Review, modifier: Modifier = Modifier) {
+    var spoilerRevealed by remember(review.id) { mutableStateOf(false) }
+    var isExpanded by remember(review.id) { mutableStateOf(false) }
+    var isTextOverflowing by remember(review.id) { mutableStateOf(false) }
+    Column(
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            .shadow(2.dp, RoundedCornerShape(16.dp))
+            .background(SurfaceCard, RoundedCornerShape(16.dp))
+            .animateContentSize()
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = review.username?.username ?: "Пользователь",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    (1..5).forEach { star ->
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = if (star <= review.rating) Color(0xFFFFD700) else Color(0xFFE0E0E0),
-                            modifier = Modifier.size(14.dp)
+            Text(
+                text = review.username?.username ?: "Пользователь",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                (1..5).forEach { star ->
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = if (star <= review.rating) Color(0xFFFFD700) else Color(0xFFE0E0E0),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+        if (!review.text.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            if (review.is_spoiler && !spoilerRevealed) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(PrimaryBook.copy(alpha = 0.08f))
+                        .clickable { spoilerRevealed = true }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.VisibilityOff,
+                        contentDescription = null,
+                        tint = PrimaryBook,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Осторожно, спойлер! Нажмите, чтобы показать",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            color = PrimaryBook,
+                            fontWeight = FontWeight.SemiBold
                         )
+                    )
+                }
+            } else {
+                Text(
+                    text = review.text,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = TextPrimary.copy(alpha = 0.9f),
+                        lineHeight = 20.sp
+                    ),
+                    maxLines = if (isExpanded) Int.MAX_VALUE else 4,
+                    overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { result ->
+                        if (!isExpanded) {
+                            isTextOverflowing = result.hasVisualOverflow
+                        }
+                    }
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isTextOverflowing || isExpanded) {
+                        Text(
+                            text = if (isExpanded) "Свернуть" else "Читать полностью",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = PrimaryBook,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .clickable { isExpanded = !isExpanded }
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+                    if (review.is_spoiler && spoilerRevealed) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .clickable { spoilerRevealed = false }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Скрыть спойлер",
+                                style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
+                            )
+                        }
                     }
                 }
             }
-
-            if (!review.text.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = review.text,
-                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
-                )
-            }
-
-            review.created_at?.let {
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = it.formatDate(),
-                    style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary.copy(alpha = 0.7f)),
-                    modifier = Modifier.align(Alignment.End)
-                )
-            }
+        }
+        review.created_at?.let {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = it.formatDate(),
+                style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary.copy(alpha = 0.7f)),
+                modifier = Modifier.align(Alignment.End)
+            )
         }
     }
 }
-
 fun String.formatDate(): String {
     return if (this.length >= 10) this.substring(0, 10).replace("-", ".") else this
 }

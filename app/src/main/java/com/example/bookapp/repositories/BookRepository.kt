@@ -76,30 +76,25 @@ class BookRepository {
     }
 
     suspend fun getAllBooks(): List<Book> = withContext(Dispatchers.IO) {
-        try {
-            SupabaseClient.client
-                .from("books")
-                .select(Columns.raw("""
-                    id,
-                    title,
-                    author,
-                    cover_url,
-                    description,
-                    year,
-                    avg_rating,
-                    book_genres(
-                        genres(
-                            id,
-                            name
-                        )
+        SupabaseClient.client
+            .from("books")
+            .select(Columns.raw("""
+                id,
+                title,
+                author,
+                cover_url,
+                description,
+                year,
+                avg_rating,
+                book_genres(
+                    genres(
+                        id,
+                        name
                     )
-                """))
-                .decodeList<BookWithGenres>()
-                .map { it.toBook() }
-        } catch (e: Exception) {
-            Log.e("BookRepo", "Error loading books", e)
-            emptyList()
-        }
+                )
+            """))
+            .decodeList<BookWithGenres>()
+            .map { it.toBook() }
     }
 
     suspend fun getBookById(bookId: String): Book = withContext(Dispatchers.IO) {
@@ -125,6 +120,7 @@ class BookRepository {
                 user_id,
                 rating,
                 text,
+                is_spoiler,
                 created_at,
                 user:users!user_id(username)
             )
@@ -248,14 +244,6 @@ class BookRepository {
         cache.clear()
     }
 
-    // Добавьте этот data class в файл (например, в конец файла BookRepository.kt)
-    @Serializable
-    private data class SimilarBooksParams(
-        val p_book_id: String,
-        val p_limit: Int
-    )
-
-    // Исправленная функция
     suspend fun getSimilarBooks(bookId: String, limit: Int = 6): List<Book> = withContext(Dispatchers.IO) {
         similarBooksCache[bookId]?.let {
             if (it.isNotEmpty()) return@withContext it.take(limit)
@@ -264,7 +252,6 @@ class BookRepository {
         try {
             val similarIds = mutableListOf<String>()
 
-            // Запрос для book1_id (bookId как первая книга) - используем конкретный тип
             val response1 = SupabaseClient.client
                 .from("book_similarity")
                 .select(columns = Columns.raw("book2_id, score")) {
@@ -276,7 +263,6 @@ class BookRepository {
 
             similarIds.addAll(response1.mapNotNull { it.book2_id })
 
-            // Если не нашли, ищем как book2_id
             if (similarIds.isEmpty()) {
                 val response2 = SupabaseClient.client
                     .from("book_similarity")
@@ -294,10 +280,8 @@ class BookRepository {
                 return@withContext emptyList()
             }
 
-            // Загружаем книги через getAllBooks()
             val allBooks = getAllBooks()
             val bookMap = allBooks.associateBy { it.id }
-
             val result = similarIds.mapNotNull { bookMap[it] }
 
             if (result.isNotEmpty()) {
@@ -305,9 +289,7 @@ class BookRepository {
             }
 
             result
-
         } catch (e: CancellationException) {
-            Log.d("BookRepo", "Similar books loading was cancelled for $bookId")
             emptyList()
         } catch (e: Exception) {
             Log.e("BookRepo", "Error loading similar books for $bookId", e)
@@ -315,29 +297,16 @@ class BookRepository {
         }
     }
 
-    // Добавьте функцию очистки кэша
     fun clearSimilarBooksCache() {
         similarBooksCache.clear()
     }
 
-    // Data class для ответа из таблицы book_similarity
     @Serializable
     private data class SimilarityResponse(
         val book2_id: String? = null,
         val book1_id: String? = null,
         val score: Double
     )
-
-// Добавьте эти data классы:
-
-    @Serializable
-    private data class SimilarBookWithDetails(
-        val book2_id: String,
-        val score: Double,
-        val books: BookWithGenres? = null
-    ) {
-        fun toBook(): Book? = books?.toBook()
-    }
 
     @Serializable
     private data class BookWithGenres(
@@ -361,37 +330,6 @@ class BookRepository {
             avg_rating = avg_rating
         )
     }
-
-//    @Serializable
-//    private data class SimilarityResponse(
-//        val book2_id: String,
-//        val score: Double
-//    )
-
-    // ======================== МОДЕЛИ ========================
-
-//    @Serializable
-//    private data class BookWithGenres(
-//        val id: String,
-//        val title: String,
-//        val author: String,
-//        val cover_url: String,
-//        val description: String,
-//        val year: Int,
-//        val avg_rating: Double,
-//        val book_genres: List<BookGenreRelation> = emptyList()
-//    ) {
-//        fun toBook() = Book(
-//            id = id,
-//            title = title,
-//            author = author,
-//            genres = book_genres.mapNotNull { it.genres },
-//            cover_url = cover_url,
-//            description = description,
-//            year = year,
-//            avg_rating = avg_rating
-//        )
-//    }
 
     @Serializable
     private data class BookWithGenresAndReviews(
@@ -417,13 +355,9 @@ class BookRepository {
             reviews = reviews
         )
     }
+
     @Serializable
     private data class BookGenreRelation(
         val genres: Genre? = null
-    )
-
-    @Serializable
-    private data class GenreResponse(
-        val genres: Genre?
     )
 }
