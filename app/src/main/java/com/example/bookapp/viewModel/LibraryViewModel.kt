@@ -16,10 +16,12 @@ import kotlinx.coroutines.launch
 
 enum class YearFilter(val label: String) {
     ALL("Все годы"),
-    CLASSIC("До 2000 г."),
-    MODERN("2000–2015 гг."),
-    NEW("После 2015 г.")
+    CENTURY_19("XIX век (до 1900)"),
+    FIRST_HALF_20("1900–1950 гг."),
+    SECOND_HALF_20("1951–1990 гг."),
+    MODERN("Современные (с 1991)")
 }
+
 
 class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
     private val _books = MutableStateFlow<List<Book>>(emptyList())
@@ -69,9 +71,10 @@ class LibraryViewModel(private val repository: BookRepository) : ViewModel() {
 
             val matchesYear = when (yearFilter) {
                 YearFilter.ALL -> true
-                YearFilter.CLASSIC -> (book.year ?: 0) in 1..1999
-                YearFilter.MODERN -> (book.year ?: 0) in 2000..2015
-                YearFilter.NEW -> (book.year ?: 0) > 2015
+                YearFilter.CENTURY_19 -> (book.year ?: 0) in 1..1899
+                YearFilter.FIRST_HALF_20 -> (book.year ?: 0) in 1900..1950
+                YearFilter.SECOND_HALF_20 -> (book.year ?: 0) in 1951..1990
+                YearFilter.MODERN -> (book.year ?: 0) >= 1991
             }
 
             matchesQuery && matchesGenre && matchesYear

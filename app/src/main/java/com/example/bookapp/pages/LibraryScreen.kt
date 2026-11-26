@@ -101,7 +101,7 @@ fun LibraryScreen(
     val selectedGenre by viewModel.selectedGenre.collectAsState()
     val selectedYear by viewModel.selectedYearFilter.collectAsState()
 
-    var visibleBooksCount by remember { mutableStateOf(26) }
+    var visibleBooksCount by remember { mutableStateOf(16) }
     val currentUser = UserSession.currentUser.value
 
     LaunchedEffect(currentUser?.id) {
@@ -166,12 +166,34 @@ fun LibraryScreen(
                             }
                         }
                     } else {
+                        val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+                        val shouldLoadMore by remember(filteredBooks.size, visibleBooksCount) {
+                            androidx.compose.runtime.derivedStateOf {
+                                val lastVisibleIndex = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                val totalLoaded = minOf(visibleBooksCount, filteredBooks.size)
+                                totalLoaded < filteredBooks.size && lastVisibleIndex >= totalLoaded - 4
+                            }
+                        }
+
+                        LaunchedEffect(shouldLoadMore) {
+                            if (shouldLoadMore) {
+                                visibleBooksCount += 10
+                            }
+                        }
+
+                        // Сбрасываем счетчик при смене поиска или фильтров
+                        LaunchedEffect(searchQuery, selectedGenre, selectedYear) {
+                            visibleBooksCount = 16
+                            gridState.scrollToItem(0)
+                        }
+
                         LazyVerticalGrid(
+                            state = gridState,
                             columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             items(
                                 items = filteredBooks.take(visibleBooksCount),
@@ -184,20 +206,6 @@ fun LibraryScreen(
                                 ) {
                                     BookGridItem(book, navController)
                                 }
-                            }
-                        }
-
-                        if (visibleBooksCount < filteredBooks.size) {
-                            Button(
-                                onClick = { visibleBooksCount += 8 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                                    .height(50.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
-                            ) {
-                                Text("Загрузить ещё", style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
