@@ -33,8 +33,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
@@ -82,6 +84,7 @@ import com.example.bookapp.ui.theme.SurfaceCard
 import com.example.bookapp.ui.theme.TextPrimary
 import com.example.bookapp.ui.theme.TextSecondary
 import com.example.bookapp.viewModel.LibraryViewModel
+import com.example.bookapp.viewModel.YearFilter
 import com.example.bookapp.viewModelFactory.LibraryViewModelFactory
 
 @Composable
@@ -89,16 +92,20 @@ fun LibraryScreen(
     navController: NavController,
     viewModel: LibraryViewModel = viewModel(factory = LibraryViewModelFactory(BookRepository()))
 ) {
-    val books by viewModel.books.collectAsState()
+    val allBooks by viewModel.books.collectAsState()
+    val filteredBooks by viewModel.filteredBooks.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState(initial = null)
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val genres by viewModel.availableGenres.collectAsState()
+    val selectedGenre by viewModel.selectedGenre.collectAsState()
+    val selectedYear by viewModel.selectedYearFilter.collectAsState()
+
     var visibleBooksCount by remember { mutableStateOf(26) }
     val currentUser = UserSession.currentUser.value
 
     LaunchedEffect(currentUser?.id) {
-        currentUser?.id?.let { userId ->
-            viewModel.loadUserLists(userId)
-        }
+        currentUser?.id?.let { userId -> viewModel.loadUserLists(userId) }
     }
 
     LaunchedEffect(Unit) {
@@ -110,21 +117,19 @@ fun LibraryScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         when {
-            isLoading && books.isEmpty() -> {
+            isLoading && allBooks.isEmpty() -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = PrimaryBook)
                 }
             }
-            errorMessage != null && books.isEmpty() -> {
+            errorMessage != null && allBooks.isEmpty() -> {
                 ErrorRetryView(
                     message = errorMessage ?: "Ошибка загрузки данных",
                     onRetry = {
                         viewModel.loadBooks()
                         currentUser?.id?.let { viewModel.loadUserLists(it) }
                     },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
+                    modifier = Modifier.fillMaxSize().padding(innerPadding)
                 )
             }
             else -> {
@@ -133,38 +138,67 @@ fun LibraryScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                 ) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        items(
-                            items = books.take(visibleBooksCount),
-                            key = { it.id }
-                        ) { book ->
-                            AnimatedVisibility(
-                                visible = true,
-                                enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) +
-                                        slideInVertically(initialOffsetY = { 80 }, animationSpec = spring(stiffness = Spring.StiffnessLow))
-                            ) {
-                                BookGridItem(book, navController)
+                    LibrarySearchAndFilters(
+                        searchQuery = searchQuery,
+                        onSearchChange = viewModel::onSearchQueryChange,
+                        genres = genres,
+                        selectedGenre = selectedGenre,
+                        onGenreSelect = viewModel::onGenreSelected,
+                        selectedYear = selectedYear,
+                        onYearSelect = viewModel::onYearFilterSelected
+                    )
+
+                    if (filteredBooks.isEmpty()) {
+                        Box(
+                            modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "По вашему запросу книги не найдены",
+                                    style = MaterialTheme.typography.bodyLarge.copy(color = TextSecondary),
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                TextButton(onClick = { viewModel.resetFilters() }) {
+                                    Text("Сбросить фильтры", color = PrimaryBook, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
-                    }
-
-                    if (visibleBooksCount < books.size) {
-                        Button(
-                            onClick = { visibleBooksCount += 8 },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Text("Загрузить ещё", style = MaterialTheme.typography.labelLarge)
+                            items(
+                                items = filteredBooks.take(visibleBooksCount),
+                                key = { it.id }
+                            ) { book ->
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) +
+                                            slideInVertically(initialOffsetY = { 80 }, animationSpec = spring(stiffness = Spring.StiffnessLow))
+                                ) {
+                                    BookGridItem(book, navController)
+                                }
+                            }
+                        }
+
+                        if (visibleBooksCount < filteredBooks.size) {
+                            Button(
+                                onClick = { visibleBooksCount += 8 },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBook)
+                            ) {
+                                Text("Загрузить ещё", style = MaterialTheme.typography.labelLarge)
+                            }
                         }
                     }
                 }
@@ -172,6 +206,7 @@ fun LibraryScreen(
         }
     }
 }
+
 
 @Composable
 fun ErrorRetryView(
@@ -563,3 +598,138 @@ private fun AddToListDialog(
     )
 }
 private fun Modifier.alignmentOffset() = this.offset(y = 0.dp)
+
+@Composable
+fun LibrarySearchAndFilters(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    genres: List<String>,
+    selectedGenre: String?,
+    onGenreSelect: (String?) -> Unit,
+    selectedYear: YearFilter,
+    onYearSelect: (YearFilter) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+    ) {
+        // Строка поиска в карточке SurfaceCard с ручной тенью
+        androidx.compose.material3.OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchChange,
+            placeholder = {
+                Text(
+                    "Поиск по названию или автору...",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary)
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Search,
+                    contentDescription = "Поиск",
+                    tint = PrimaryBook
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    androidx.compose.material3.IconButton(onClick = { onSearchChange("") }) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                            contentDescription = "Очистить",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = SurfaceCard,
+                unfocusedContainerColor = SurfaceCard,
+                focusedBorderColor = PrimaryBook,
+                unfocusedBorderColor = Color.Transparent
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .shadow(2.dp, RoundedCornerShape(14.dp))
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Фильтр по годам (LazyRow)
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(YearFilter.entries.size) { index ->
+                val filter = YearFilter.entries[index]
+                val isSelected = filter == selectedYear
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isSelected) PrimaryBook else SurfaceCard)
+                        .clickable { onYearSelect(filter) }
+                        .padding(horizontal = 12.dp, vertical = 7.dp)
+                ) {
+                    Text(
+                        text = filter.label,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            color = if (isSelected) Color.White else TextSecondary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    )
+                }
+            }
+        }
+
+        // Фильтр по жанрам (LazyRow)
+        if (genres.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    val isAllSelected = selectedGenre == null
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isAllSelected) SecondaryBook else SurfaceCard)
+                            .clickable { onGenreSelect(null) }
+                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                    ) {
+                        Text(
+                            text = "Все жанры",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = if (isAllSelected) Color.White else TextSecondary,
+                                fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        )
+                    }
+                }
+                items(genres.size) { index ->
+                    val genre = genres[index]
+                    val isSelected = genre == selectedGenre
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) SecondaryBook else SurfaceCard)
+                            .clickable { onGenreSelect(genre) }
+                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                    ) {
+                        Text(
+                            text = genre,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = if (isSelected) Color.White else TextSecondary,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
